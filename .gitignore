@@ -1,0 +1,17 @@
+.idea
+.vscode
+
+.tox
+.pytest_cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+*.so
+*.egg-info
+*.whl
+.venv
+data
+*.db
+
+sketches_svg.zip
