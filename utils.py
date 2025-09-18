@@ -1,6 +1,41 @@
 import torch
 from svgpathtools import svgstr2paths
 
+from prepare_data import parse_viewbox, make_quantizer
+
+
+def svg_to_tensor_quantized(svg_content: str, bins=128, max_sequence_length: int = 200):
+    """
+    Convert SVG path data to a quantized tensor representation.
+    """
+    paths, _ = svgstr2paths(svg_content)
+    min_x, max_x, min_y, max_y = parse_viewbox(svg_content)
+    quantize_point = make_quantizer(min_x, max_x, min_y, max_y, bins)
+    tensor = torch.zeros((max_sequence_length, 3))  # (seq_len, 3)
+    idx = 0
+
+    for path in paths:
+        if idx >= max_sequence_length:
+            break
+
+        start_quantized = quantize_point(path[0].start)
+        tensor[idx, 0] = start_quantized.real
+        tensor[idx, 1] = start_quantized.imag
+        tensor[idx, 2] = 0.0  # Move command
+        idx += 1
+
+        for segment in path:
+            if idx >= max_sequence_length:
+                break
+
+            end_quantized = quantize_point(segment.end)
+            tensor[idx, 0] = end_quantized.real
+            tensor[idx, 1] = end_quantized.imag
+            tensor[idx, 2] = 1.0  # Line command
+            idx += 1
+
+    return tensor
+
 
 def svg_to_tensor(svg_content: str, max_sequence_length: int = 200):
     """
@@ -34,10 +69,7 @@ def svg_to_tensor(svg_content: str, max_sequence_length: int = 200):
 
 
 def tensor_to_svg(tensor: torch.Tensor, size=256, stroke_width=0.8) -> str:
-    svg_parts = [
-        f'<svg xmlns="http://www.w3.org/2000/svg" width="{size}" height="{size}" viewBox="0 0 {size} {size}"><g stroke-width="{stroke_width}">'
-    ]
-
+    svg_parts = [f'<svg viewBox="0 0 {size} {size}"><g stroke-width="{stroke_width}">']
     path_cmds = []
 
     for i in range(tensor.shape[0]):
@@ -45,15 +77,12 @@ def tensor_to_svg(tensor: torch.Tensor, size=256, stroke_width=0.8) -> str:
 
         # Skip unused rows (all zeros)
         if x == 0 and y == 0 and flag == 0:
-            continue
+            break
 
         if flag == 0.0:
-            # Start new path
             if path_cmds:
                 path_str = " ".join(path_cmds)
-                svg_parts.append(
-                    f'<path d="{path_str}" stroke="black" fill="none" stroke-linecap="round" stroke-linejoin="round"/>'
-                )
+                svg_parts.append(f'<path d="{path_str}" stroke="black" fill="none"/>')
                 path_cmds = []
 
             path_cmds.append(f"M {x} {y}")
@@ -63,9 +92,7 @@ def tensor_to_svg(tensor: torch.Tensor, size=256, stroke_width=0.8) -> str:
     # Flush last path
     if path_cmds:
         path_str = " ".join(path_cmds)
-        svg_parts.append(
-            f'<path d="{path_str}" stroke="black" fill="none" stroke-linecap="round" stroke-linejoin="round"/>'
-        )
+        svg_parts.append(f'<path d="{path_str}" stroke="black" fill="none"/>')
 
     svg_parts.append("</g></svg>")
     return "\n".join(svg_parts)

@@ -1,7 +1,6 @@
 # Matthew Taylor 2025
 
 import re
-import xml.etree.ElementTree as ET
 from svgpathtools import (
     svgstr2paths,
     paths2Drawing,
@@ -12,35 +11,45 @@ from svgpathtools import (
     Arc,
 )
 
-
 # Utilities for optimizing SVG files
+_viewbox_re = re.compile(r'viewBox\s*=\s*"([^"]+)"')
 
 
-def parse_viewbox(svg_content):
-    tree = ET.ElementTree(ET.fromstring(svg_content))
-    root = tree.getroot()
-    viewbox = root.attrib.get("viewBox")
-    if viewbox is None:
+def parse_viewbox(svg_content: str):
+    m = _viewbox_re.search(svg_content)
+    if not m:
         raise ValueError("SVG file does not contain a viewBox attribute.")
-    parts = list(map(float, viewbox.strip().split()))
+    parts = list(map(float, m.group(1).split()))
     if len(parts) != 4:
-        raise ValueError(f"Invalid viewBox format: {viewbox}")
+        raise ValueError(f"Invalid viewBox format: {m.group(1)}")
     min_x, min_y, width, height = parts
-    max_x = min_x + width
-    max_y = min_y + height
-    return min_x, max_x, min_y, max_y
+    return min_x, min_x + width, min_y, min_y + height
 
 
-def quantize_point(p, min_x, max_x, min_y, max_y, bins):
-    x = (p.real - min_x) / (max_x - min_x) if max_x > min_x else 0
-    y = (p.imag - min_y) / (max_y - min_y) if max_y > min_y else 0
-    qx = min(int(round(x * (bins - 1))), bins - 1)
-    qy = min(int(round(y * (bins - 1))), bins - 1)
-    return complex(qx, qy)
+def make_quantizer(min_x, max_x, min_y, max_y, bins):
+    if max_x > min_x:
+        scale_x = (bins - 1) / (max_x - min_x)
+    else:
+        scale_x = 0.0
+
+    if max_y > min_y:
+        scale_y = (bins - 1) / (max_y - min_y)
+    else:
+        scale_y = 0.0
+
+    def quantize_point(p):
+        qx = (p.real - min_x) * scale_x
+        qy = (p.imag - min_y) * scale_y
+        qx = max(0, min(int(round(qx)), bins - 1))
+        qy = max(0, min(int(round(qy)), bins - 1))
+        return complex(qx, qy)
+
+    return quantize_point
 
 
 def quantize_paths(paths, bins, svg_content):
     min_x, max_x, min_y, max_y = parse_viewbox(svg_content)
+    quantize_point = make_quantizer(min_x, max_x, min_y, max_y, bins)
     # print(f"Quantizing paths with viewbox: {min_x}, {max_x}, {min_y}, {max_y} and bins: {bins}")
 
     quantized_paths = []
@@ -48,48 +57,39 @@ def quantize_paths(paths, bins, svg_content):
         qpath = Path()
         for segment in path:
             if isinstance(segment, Line):
-                q_start = quantize_point(
-                    segment.start, min_x, max_x, min_y, max_y, bins
-                )
-                q_end = quantize_point(segment.end, min_x, max_x, min_y, max_y, bins)
+                q_start = quantize_point(segment.start)
+                q_end = quantize_point(segment.end)
                 qpath.append(Line(q_start, q_end))
 
             elif isinstance(segment, QuadraticBezier):
-                q_start = quantize_point(
-                    segment.start, min_x, max_x, min_y, max_y, bins
-                )
-                q_ctrl = quantize_point(
-                    segment.control, min_x, max_x, min_y, max_y, bins
-                )
-                q_end = quantize_point(segment.end, min_x, max_x, min_y, max_y, bins)
+                q_start = quantize_point(segment.start)
+                q_ctrl = quantize_point(segment.control)
+                q_end = quantize_point(segment.end)
                 qpath.append(QuadraticBezier(q_start, q_ctrl, q_end))
 
             elif isinstance(segment, CubicBezier):
-                q_start = quantize_point(
-                    segment.start, min_x, max_x, min_y, max_y, bins
-                )
-                q_ctrl1 = quantize_point(
-                    segment.control1, min_x, max_x, min_y, max_y, bins
-                )
-                q_ctrl2 = quantize_point(
-                    segment.control2, min_x, max_x, min_y, max_y, bins
-                )
-                q_end = quantize_point(segment.end, min_x, max_x, min_y, max_y, bins)
+                q_start = quantize_point(segment.start)
+                q_ctrl1 = quantize_point(segment.control1)
+                q_ctrl2 = quantize_point(segment.control2)
+                q_end = quantize_point(segment.end)
                 qpath.append(CubicBezier(q_start, q_ctrl1, q_ctrl2, q_end))
 
             elif isinstance(segment, Arc):
                 # Convert arc to cubic and quantize
                 for cubic in segment.as_cubic_curves():
-                    q_start = quantize_point(
-                        cubic.start, min_x, max_x, min_y, max_y, bins
-                    )
-                    q_ctrl1 = quantize_point(
-                        cubic.control1, min_x, max_x, min_y, max_y, bins
-                    )
-                    q_ctrl2 = quantize_point(
-                        cubic.control2, min_x, max_x, min_y, max_y, bins
-                    )
-                    q_end = quantize_point(cubic.end, min_x, max_x, min_y, max_y, bins)
+                    q_start = quantize_point(cubic.start)
+                    q_ctrl1 = quantize_point(cubic.control1)
+                    q_ctrl2 = quantize_point(cubic.control2)
+                    q_end = quantize_point(cubic.end)
+                    qpath.append(CubicBezier(q_start, q_ctrl1, q_ctrl2, q_end))
+
+            elif isinstance(segment, Arc):
+                # Convert arc to cubic and quantize
+                for cubic in segment.as_cubic_curves():
+                    q_start = quantize_point(cubic.start)
+                    q_ctrl1 = quantize_point(cubic.control1)
+                    q_ctrl2 = quantize_point(cubic.control2)
+                    q_end = quantize_point(cubic.end)
                     qpath.append(CubicBezier(q_start, q_ctrl1, q_ctrl2, q_end))
 
             else:
@@ -110,8 +110,7 @@ def clean_svg(svg_content, bins):
     # svg_text = re.sub(r'(\bwidth|height)="([^"]+?)px"', r'\1="\2"', svg_text)
 
     # Remove `.0` from floats like 123.0 → 123
-    svg_text = re.sub(r"(\d+)\.0([^0-9])", r"\1\2", svg_text)
-    svg_text = re.sub(r'(\d+)\.0(?=\s|")', r"\1", svg_text)
+    svg_text = re.sub(r"(\d+)\.0(?=[^0-9])", r"\1", svg_text)
 
     # Remove empty <defs/>
     svg_text = svg_text.replace("<defs/>", "")
@@ -146,8 +145,7 @@ def clean_svg(svg_content, bins):
     # Add a <g> element after <svg ... >
     # TODO: this should be dynamic based on the original stroke width * some factor
     svg_text = re.sub(r"(<svg[^>]*>)", r'\1<g stroke-width="0.4">', svg_text)
-
-    svg_text = re.sub(r"</svg>", r"</g></svg>", svg_text)
+    svg_text = svg_text.replace("</svg>", "</g></svg>")
 
     # remove all whitespace between elements
     svg_text = re.sub(r">\s+<", "><", svg_text)
@@ -169,9 +167,7 @@ def convert_and_quantize_svg(svg_content, bins: int = 128):
 
 
 def quickdraw_to_svg(drawing, stroke_width=0.6, size=256):
-    svg_parts = [
-        f'<svg xmlns="http://www.w3.org/2000/svg" width="{size}" height="{size}" viewBox="0 0 {size} {size}"><g stroke-width="{stroke_width}">'
-    ]
+    svg_parts = [f'<svg viewBox="0 0 {size} {size}"><g stroke-width="{stroke_width}">']
     for stroke in drawing:
         xs, ys = stroke[0], stroke[1]
         if not xs or not ys:
@@ -182,9 +178,7 @@ def quickdraw_to_svg(drawing, stroke_width=0.6, size=256):
             path_cmds.append(f"L {x} {y}")
 
         path_str = " ".join(path_cmds)
-        svg_parts.append(
-            f'<path d="{path_str}" stroke="black" fill="none" stroke-linecap="round" stroke-linejoin="round"/>'
-        )
+        svg_parts.append(f'<path d="{path_str}" stroke="black" fill="none"/>')
 
     svg_parts.append("</g></svg>")
     return "\n".join(svg_parts)

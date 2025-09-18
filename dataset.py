@@ -41,8 +41,10 @@ class TUBerlinDataset(BaseSketchDataset):
             os.makedirs(self.out_dir, exist_ok=True)
             if not os.path.exists("sketches_svg.zip"):
                 urllib.request.urlretrieve(self.bucket_url, "sketches_svg.zip")
-            with zipfile.ZipFile("sketches_svg.zip", "r") as zip_ref:
-                zip_ref.extractall(self.out_dir)
+
+            if not os.path.exists(f"{self.out_dir}/svg"):
+                with zipfile.ZipFile("sketches_svg.zip", "r") as zip_ref:
+                    zip_ref.extractall(self.out_dir)
 
         data = []
         labels_path = f"{self.out_dir}/svg"
@@ -65,7 +67,7 @@ class TUBerlinDataset(BaseSketchDataset):
 
 class QuickDrawDataset(BaseSketchDataset):
     # https://console.cloud.google.com/storage/browser/quickdraw_dataset/full/simplified
-    bucket_url = "https://storage.googleapis.com/storage/v1/b/quickdraw_dataset/o"
+    bucket_url = "https://storage.googleapis.com/storage/v1/b/quickdraw_dataset/o?prefix=full/simplified/"
     out_dir = "data/quickdraw"
 
     def __init__(
@@ -96,22 +98,17 @@ class QuickDrawDataset(BaseSketchDataset):
         super().__init__(data, base_transform)
 
     def get_buckets(self, labels):
-        label_files, token = [], None
-        while True:
-            url = f"{self.url}?prefix=full/simplified/"
-            if token:
-                url += f"&pageToken={token}"
-            with urllib.request.urlopen(url) as resp:
-                data = json.load(resp)
+        label_files = []
+        with urllib.request.urlopen(self.bucket_url) as resp:
+            data = json.load(resp)
 
-            for item in data.get("items", []):
-                name = item["name"]
-                if name in labels and name.endswith(".ndjson"):
-                    enc = urllib.parse.quote(name, safe="/")
-                    label_files.append(
-                        (name, f"https://storage.googleapis.com/{item['bucket']}/{enc}")
-                    )
-            token = data.get("nextPageToken")
-            if not token:
-                break
+        for item in data.get("items", []):
+            name = item["name"]
+            label = os.path.basename(name).replace(".ndjson", "")
+
+            if label in labels and name.endswith(".ndjson"):
+                enc = urllib.parse.quote(name, safe="/")
+                label_files.append(
+                    (label, f"https://storage.googleapis.com/{item['bucket']}/{enc}")
+                )
         return label_files
