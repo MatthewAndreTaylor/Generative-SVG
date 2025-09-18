@@ -126,10 +126,13 @@ We see improvements we could make to how previous stratergies represent the sket
 
 - Matthew Taylor has created a module `dataset.py` for downloading, organizing, preprocessing and using the datasets with `pytorch`. An example of how to use this dataset is in `dataset_visualization.ipynb`
 
+- Sebastian Tasson validated that the dataset was accessible in the example notebook.
+
 ## Prerequisites
 
 Python >= 3.9
 
 ```bash
 pip install -r requirements.txt
+
 ```
