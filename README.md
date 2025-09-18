@@ -4,7 +4,7 @@
 
 - <code>![Profile MatthewAndreTaylor](https://images.weserv.nl/?url=avatars.githubusercontent.com/u/100451342?v=4&h=30&w=30&fit=cover&mask=circle&maxage=7d) <a href="https://github.com/MatthewAndreTaylor">Matthew Taylor</a></code>
 
-- <code> ![Profile tassonse](https://images.weserv.nl/?url=avatars.githubusercontent.com/u/116180211?v=4&h=30&w=30&fit=cover&mask=circle&maxage=7d) <a href="https://github.com/tassonse">Sebastian Tasson</a></code>
+- <code>![Profile tassonse](https://images.weserv.nl/?url=avatars.githubusercontent.com/u/116180211?v=4&h=30&w=30&fit=cover&mask=circle&maxage=7d) <a href="https://github.com/tassonse">Sebastian Tasson</a></code>
 
 ## Distribution of Responsibilities
 
@@ -136,3 +136,4 @@ Python >= 3.9
 pip install -r requirements.txt
 
 ```
+
