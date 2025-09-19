@@ -60,18 +60,17 @@ class TUBerlinDataset(BaseSketchDataset):
         labels_path = f"{self.out_dir}/svg"
         downloaded_labels = set(os.listdir(labels_path))
 
-        if not "cache_file" in kwargs:
-            for label in tqdm(labels, desc="Loading TUBerlin files"):
-                if label not in downloaded_labels:
-                    raise ValueError("Dataset missing or label has no samples.")
+        for label in tqdm(labels, desc="Loading TUBerlin files"):
+            if label not in downloaded_labels:
+                raise ValueError("Dataset missing or label has no samples.")
 
-                data_path = f"{self.out_dir}/svg/{label}"
-                for file in os.listdir(data_path):
-                    svg_path = f"{data_path}/{file}"
+            data_path = f"{self.out_dir}/svg/{label}"
+            for file in os.listdir(data_path):
+                svg_path = f"{data_path}/{file}"
 
-                    with open(svg_path, "r") as f:
-                        svg_data = f.read()
-                        data.append(svg_data)
+                with open(svg_path, "r") as f:
+                    svg_data = f.read()
+                    data.append(svg_data)
 
         super().__init__(data, **kwargs)
 
@@ -94,16 +93,15 @@ class QuickDrawDataset(BaseSketchDataset):
 
         data = []
 
-        if not "cache_file" in kwargs:
-            for label in tqdm(labels, desc="Loading QuickDraw files"):
-                if not os.path.exists(f"{self.out_dir}/{label}.ndjson"):
-                    raise ValueError("Dataset missing or label has no samples.")
+        for label in tqdm(labels, desc="Loading QuickDraw files"):
+            if not os.path.exists(f"{self.out_dir}/{label}.ndjson"):
+                raise ValueError("Dataset missing or label has no samples.")
 
-                with open(f"{self.out_dir}/{label}.ndjson") as f:
-                    for line in f:
-                        d = json.loads(line)
-                        if d["recognized"]:
-                            data.append(quickdraw_to_svg(d["drawing"]))
+            with open(f"{self.out_dir}/{label}.ndjson") as f:
+                for line in f:
+                    d = json.loads(line)
+                    if d["recognized"]:
+                        data.append(quickdraw_to_svg(d["drawing"]))
 
         super().__init__(data, **kwargs)
 

@@ -25,7 +25,6 @@ def svg_strokes_to_tensor_quantized(
     min_x, max_x, min_y, max_y = parse_viewbox(svg_content)
     quantize_point = make_quantizer(min_x, max_x, min_y, max_y, bins)
     tensor = torch.zeros((max_sequence_length, 3))  # (seq_len, 3)
-    max_sequence_length = max_sequence_length - 1  # reserve space for end token
     idx = 0
     prev = None
 
@@ -53,11 +52,6 @@ def svg_strokes_to_tensor_quantized(
             prev = end_quantized
             idx += 1
 
-    # Mark end of sketch
-    tensor[idx, 0] = 0.0
-    tensor[idx, 1] = 0.0
-    tensor[idx, 2] = -1.0
-
     return tensor
 
 
@@ -68,7 +62,6 @@ def svg_strokes_to_tensor(svg_content: str, max_sequence_length: int = 200):
     """
     paths, _ = svgstr2paths(svg_content)
     tensor = torch.zeros((max_sequence_length, 3))
-    max_sequence_length = max_sequence_length - 1  # reserve space for end token
     idx = 0
     prev = None
 
@@ -95,11 +88,6 @@ def svg_strokes_to_tensor(svg_content: str, max_sequence_length: int = 200):
             prev = end
             idx += 1
 
-    # Mark end of sketch
-    tensor[idx, 0] = 0.0
-    tensor[idx, 1] = 0.0
-    tensor[idx, 2] = -1.0
-
     return tensor
 
 
@@ -113,8 +101,8 @@ def tensor_to_svg_strokes(tensor: torch.Tensor, size=256, stroke_width=0.8) -> s
     x, y = 0.0, 0.0  # start at origin
     for i in range(tensor.shape[0]):
         dx, dy, flag = tensor[i].tolist()
-        if flag == -1.0:  # End of sketch
-            break
+        if dx == 0.0 and dy == 0.0 and flag == 0.0:
+            continue
 
         x += dx
         y += dy
@@ -145,7 +133,6 @@ def svg_to_tensor_quantized(svg_content: str, bins=128, max_sequence_length: int
     min_x, max_x, min_y, max_y = parse_viewbox(svg_content)
     quantize_point = make_quantizer(min_x, max_x, min_y, max_y, bins)
     tensor = torch.zeros((max_sequence_length, 3))  # (seq_len, 3)
-    max_sequence_length = max_sequence_length - 1  # reserve space for end token
     idx = 0
 
     for path in paths:
@@ -167,12 +154,7 @@ def svg_to_tensor_quantized(svg_content: str, bins=128, max_sequence_length: int
             tensor[idx, 1] = end_quantized.imag
             tensor[idx, 2] = 1.0  # Line command
             idx += 1
-
-    # Mark end of sketch
-    tensor[idx, 0] = 0.0
-    tensor[idx, 1] = 0.0
-    tensor[idx, 2] = -1.0
-
+    
     return tensor
 
 
@@ -183,7 +165,6 @@ def svg_to_tensor(svg_content: str, max_sequence_length: int = 200):
     """
     paths, _ = svgstr2paths(svg_content)
     tensor = torch.zeros((max_sequence_length, 3))  # (seq_len, 3)
-    max_sequence_length = max_sequence_length - 1  # reserve space for end token
     idx = 0
 
     for path in paths:
@@ -205,11 +186,6 @@ def svg_to_tensor(svg_content: str, max_sequence_length: int = 200):
             tensor[idx, 2] = 1.0
             idx += 1
 
-    # Mark end of sketch
-    tensor[idx, 0] = 0.0
-    tensor[idx, 1] = 0.0
-    tensor[idx, 2] = -1.0
-
     return tensor
 
 
@@ -221,8 +197,8 @@ def tensor_to_svg(tensor: torch.Tensor, size=256, stroke_width=0.8) -> str:
         x, y, flag = tensor[i].tolist()
 
         # Skip unused rows (all zeros)
-        if flag == -1.0:
-            break
+        if x == 0.0 and y == 0.0 and flag == 0.0:
+            continue
 
         if flag == 0.0:
             if path_cmds:
