@@ -3,6 +3,7 @@ import json
 import urllib.request
 import urllib.parse
 import zipfile
+import torch
 from tqdm import tqdm
 from torch.utils.data import Dataset
 from typing import Callable, Optional
@@ -12,12 +13,23 @@ from prepare_data import quickdraw_to_svg
 
 # transforming all the items in the dataset
 class BaseSketchDataset(Dataset):
-    def __init__(self, data, base_transform: Optional[Callable] = None):
-        self.data = data
-        self.base_transform = base_transform
-
-        if self.base_transform:
-            self.data = [self.base_transform(d) for d in self.data]
+    def __init__(
+        self,
+        data,
+        base_transform: Optional[Callable] = None,
+        cache_file: Optional[str] = None,
+    ):
+        if cache_file and os.path.exists(cache_file):
+            self.data = torch.load(cache_file)
+        else:
+            self.data = data
+            if base_transform:
+                self.data = [
+                    base_transform(d)
+                    for d in tqdm(self.data, desc="Applying base transform")
+                ]
+            if cache_file:
+                torch.save(self.data, cache_file)
 
     def __getitem__(self, index: int):
         return self.data[index]
@@ -31,9 +43,7 @@ class TUBerlinDataset(BaseSketchDataset):
     bucket_url = "https://cybertron.cg.tu-berlin.de/eitz/projects/classifysketch/sketches_svg.zip"
     out_dir = "data/tub"
 
-    def __init__(
-        self, labels, base_transform: Optional[Callable] = None, download: bool = False
-    ):
+    def __init__(self, labels, download: bool = False, **kwargs):
         self.labels = labels
 
         if download:
@@ -50,19 +60,20 @@ class TUBerlinDataset(BaseSketchDataset):
         labels_path = f"{self.out_dir}/svg"
         downloaded_labels = set(os.listdir(labels_path))
 
-        for label in tqdm(labels, desc="Loading TUBerlin files"):
-            if label not in downloaded_labels:
-                raise ValueError("Dataset missing or label has no samples.")
+        if not "cache_file" in kwargs:
+            for label in tqdm(labels, desc="Loading TUBerlin files"):
+                if label not in downloaded_labels:
+                    raise ValueError("Dataset missing or label has no samples.")
 
-            data_path = f"{self.out_dir}/svg/{label}"
-            for file in os.listdir(data_path):
-                svg_path = f"{data_path}/{file}"
+                data_path = f"{self.out_dir}/svg/{label}"
+                for file in os.listdir(data_path):
+                    svg_path = f"{data_path}/{file}"
 
-                with open(svg_path, "r") as f:
-                    svg_data = f.read()
-                    data.append(svg_data)
+                    with open(svg_path, "r") as f:
+                        svg_data = f.read()
+                        data.append(svg_data)
 
-        super().__init__(data, base_transform)
+        super().__init__(data, **kwargs)
 
 
 class QuickDrawDataset(BaseSketchDataset):
@@ -70,9 +81,7 @@ class QuickDrawDataset(BaseSketchDataset):
     bucket_url = "https://storage.googleapis.com/storage/v1/b/quickdraw_dataset/o?prefix=full/simplified/"
     out_dir = "data/quickdraw"
 
-    def __init__(
-        self, labels, base_transform: Optional[Callable] = None, download: bool = False
-    ):
+    def __init__(self, labels, download: bool = False, **kwargs):
         self.labels = labels
 
         if download:
@@ -85,17 +94,18 @@ class QuickDrawDataset(BaseSketchDataset):
 
         data = []
 
-        for label in tqdm(labels, desc="Loading QuickDraw files"):
-            if not os.path.exists(f"{self.out_dir}/{label}.ndjson"):
-                raise ValueError("Dataset missing or label has no samples.")
+        if not "cache_file" in kwargs:
+            for label in tqdm(labels, desc="Loading QuickDraw files"):
+                if not os.path.exists(f"{self.out_dir}/{label}.ndjson"):
+                    raise ValueError("Dataset missing or label has no samples.")
 
-            with open(f"{self.out_dir}/{label}.ndjson") as f:
-                for line in f:
-                    d = json.loads(line)
-                    if d["recognized"]:
-                        data.append(quickdraw_to_svg(d["drawing"]))
+                with open(f"{self.out_dir}/{label}.ndjson") as f:
+                    for line in f:
+                        d = json.loads(line)
+                        if d["recognized"]:
+                            data.append(quickdraw_to_svg(d["drawing"]))
 
-        super().__init__(data, base_transform)
+        super().__init__(data, **kwargs)
 
     def get_buckets(self, labels):
         label_files = []

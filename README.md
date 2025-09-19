@@ -119,7 +119,7 @@ Chatgpt and existing models are not fucused on drawing sketch images (example: [
 
 We use two of the datasets which were used for this task in the past, however we attempt to use a different tensor representation.
 
-We see improvements we could make to how previous stratergies represent the sketch data. Such as quantizing point coordinates ahead of time, experimenting with a Vector Quantized Variational Autoencoder (VQ-VAE) to encode the strokes in each drawing. 
+We see improvements we could make to how previous stratergies represent the sketch data. Such as quantizing point coordinates ahead of time. 
 
 
 ## Dataset Access

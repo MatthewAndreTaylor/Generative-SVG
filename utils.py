@@ -52,7 +52,7 @@ def svg_strokes_to_tensor_quantized(
             tensor[idx] = torch.tensor([dx, dy, 1.0])
             prev = end_quantized
             idx += 1
-    
+
     # Mark end of sketch
     tensor[idx, 0] = 0.0
     tensor[idx, 1] = 0.0
@@ -94,8 +94,7 @@ def svg_strokes_to_tensor(svg_content: str, max_sequence_length: int = 200):
             tensor[idx] = torch.tensor([dx, dy, 1.0])
             prev = end
             idx += 1
-            
-    
+
     # Mark end of sketch
     tensor[idx, 0] = 0.0
     tensor[idx, 1] = 0.0
@@ -168,8 +167,7 @@ def svg_to_tensor_quantized(svg_content: str, bins=128, max_sequence_length: int
             tensor[idx, 1] = end_quantized.imag
             tensor[idx, 2] = 1.0  # Line command
             idx += 1
-            
-    
+
     # Mark end of sketch
     tensor[idx, 0] = 0.0
     tensor[idx, 1] = 0.0
