@@ -14,6 +14,50 @@ from prepare_data import parse_viewbox, make_quantizer
 # where x, y are absolute coordinates, and flag is 0 for "move" and 1 for "line".
 
 
+def svg_stroke5(
+    svg_content: str, bins=128, max_sequence_length: int = 200
+):
+    """
+    Convert SVG path data to a quantized stroke-5 tensor representation.
+    Each row: (dx, dy, p0, p1, p2) where p0=move, p1=line, p2=end-of-sequence. (One hot pen state encoding)
+    """
+    paths, _ = svgstr2paths(svg_content)
+    min_x, max_x, min_y, max_y = parse_viewbox(svg_content)
+    quantize_point = make_quantizer(min_x, max_x, min_y, max_y, bins)
+    tensor = torch.zeros((max_sequence_length, 5))  # (seq_len, 5)
+    max_sequence_length = max_sequence_length - 1  # reserve last row for end token
+    idx = 0
+    prev = None
+
+    for path in paths:
+        if idx >= max_sequence_length:
+            break
+
+        # Move command (absolute delta from 0,0 if first move)
+        start_quantized = quantize_point(path[0].start)
+        dx = start_quantized.real - (prev.real if prev else 0)
+        dy = start_quantized.imag - (prev.imag if prev else 0)
+
+        tensor[idx] = torch.tensor([dx, dy, 0.0, 0.0, 0.0])
+        prev = start_quantized
+        idx += 1
+
+        # Line segments
+        for seg in path:
+            if idx >= max_sequence_length:
+                break
+            end_quantized = quantize_point(seg.end)
+            dx = end_quantized.real - prev.real
+            dy = end_quantized.imag - prev.imag
+            tensor[idx] = torch.tensor([dx, dy, 1.0, 0.0, 0.0])
+            prev = end_quantized
+            idx += 1
+            
+    tensor[idx:, 4] = 1.0  # mark unused rows with pen state p2=1
+    return tensor
+
+
+
 def svg_strokes_to_tensor_quantized(
     svg_content: str, bins=128, max_sequence_length: int = 200
 ):
@@ -32,7 +76,7 @@ def svg_strokes_to_tensor_quantized(
         if idx >= max_sequence_length:
             break
 
-        # Move command (absolute → stored as delta from 0,0 if first move)
+        # Move command (absolute delta from 0,0 if first move)
         start_quantized = quantize_point(path[0].start)
         dx = start_quantized.real - (prev.real if prev else 0)
         dy = start_quantized.imag - (prev.imag if prev else 0)
@@ -100,7 +144,8 @@ def tensor_to_svg_strokes(tensor: torch.Tensor, size=256, stroke_width=0.8) -> s
 
     x, y = 0.0, 0.0  # start at origin
     for i in range(tensor.shape[0]):
-        dx, dy, flag = tensor[i].tolist()
+        lst = tensor[i].tolist()
+        dx, dy, flag = lst[0], lst[1], lst[2]
         if dx == 0.0 and dy == 0.0 and flag == 0.0:
             continue
 
