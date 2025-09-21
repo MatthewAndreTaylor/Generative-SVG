@@ -15,3 +15,6 @@ data
 *.db
 
 sketches_svg.zip
+
+*.pt
+*.pth
