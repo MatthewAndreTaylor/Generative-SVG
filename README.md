@@ -37,10 +37,22 @@ https://creativecommons.org/licenses/by/4.0/
 
 ## Accuracy Measurement
 
-We plan to measure the accuracy of our system using:
+We are looking at a variety of different methods of determining the accuracy of our system including:
 - User study for qualitative assessment
-- FiD?
-- ...
+-- Pros: Human perception can easily determine visual/aesthetic qualities and alignment with what is meant to be generated.
+-- Cons: It would be tedious & time consuming to collect with the size of the dataset and human subjectivity and bias.
+
+- FiD (Frechet Inception Distance)
+-- Pros: Benchmark in image generation, consistency with human inspection, sensitivity to small changes in distribution.
+-- Cons: High bias unless given a large enough dataset, can sometimes contradict human raters.
+
+- CLIP (Contrastive Language-Image Pre-Training) Score
+-- Pros: Looks at text-image similarity, useful for conditional generation, correlates with human judgement.
+-- Cons: May have difficulties with sketch images as it was trained on internet images, prompt sensitivty.
+
+- GIQA (Generative Image Quality Assessment)
+-- Pros: Useful for filtering and ranking generations.
+-- Cons: Focuses on single-image fidelity rather than the full data distribution.
 
 ## Paper References
 
@@ -133,6 +145,54 @@ pages = {44:1--44:10}
   timestamp    = {Wed, 10 Jan 2024 18:05:26 +0100},
   biburl       = {https://dblp.org/rec/journals/corr/abs-2007-02190.bib},
   bibsource    = {dblp computer science bibliography, https://dblp.org}
+}
+```
+
+```bibtex
+@misc{chong2020effectivelyunbiasedfidinception,
+      title={Effectively Unbiased FID and Inception Score and where to find them}, 
+      author={Min Jin Chong and David Forsyth},
+      year={2020},
+      eprint={1911.07023},
+      archivePrefix={arXiv},
+      primaryClass={cs.CV},
+      url={https://arxiv.org/abs/1911.07023}, 
+}
+```
+
+```bibtex
+@misc{hessel2022clipscorereferencefreeevaluationmetric,
+      title={CLIPScore: A Reference-free Evaluation Metric for Image Captioning}, 
+      author={Jack Hessel and Ari Holtzman and Maxwell Forbes and Ronan Le Bras and Yejin Choi},
+      year={2022},
+      eprint={2104.08718},
+      archivePrefix={arXiv},
+      primaryClass={cs.CV},
+      url={https://arxiv.org/abs/2104.08718}, 
+}
+```
+
+```bibtex
+@misc{gu2020giqageneratedimagequality,
+      title={GIQA: Generated Image Quality Assessment}, 
+      author={Shuyang Gu and Jianmin Bao and Dong Chen and Fang Wen},
+      year={2020},
+      eprint={2003.08932},
+      archivePrefix={arXiv},
+      primaryClass={eess.IV},
+      url={https://arxiv.org/abs/2003.08932}, 
+}
+```
+
+```bibtex
+@misc{borji2021prosconsganevaluation,
+      title={Pros and Cons of GAN Evaluation Measures: New Developments}, 
+      author={Ali Borji},
+      year={2021},
+      eprint={2103.09396},
+      archivePrefix={arXiv},
+      primaryClass={cs.LG},
+      url={https://arxiv.org/abs/2103.09396}, 
 }
 ```
 
