@@ -15,7 +15,9 @@ Both of us will collaborate on the end product including documentation and a wor
 
 ## Machine-Vision Problem
 
-We are addressing the problem of automatic generation of SVG images from hand-drawn sketches. The goal is to extract important features in sketches and condition the model on labels, enabling the system to generate scalable vector representations that capture the essence of human drawing. This involves learning the underlying structure and semantics of sketches, so that the model can produce SVG outputs that are both visually accurate and semantically meaningful. Our approach leverages recent advances in machine learning to bridge the gap between human creativity and automated image synthesis, ultimately enabling more efficient and flexible workflows for designers and artists.
+We are addressing the problem of automatically generating SVG sketch images conditioned on object labels.
+By extracting important features from labelled sketches, we aim to be able to generate new sketches.
+This involves learning the underlying structure and semantics of the sketches. Then, training a model to produce outputs that are both visually accurate to the requested target label and semantically meaningful.
 
 ## Dataset Name and Location
 
@@ -114,27 +116,45 @@ pages = {44:1--44:10}
 }
 ```
 
+```bibtex
+@article{DBLP:journals/corr/abs-2007-02190,
+  author       = {Ayan Das and
+                  Yongxin Yang and
+                  Timothy M. Hospedales and
+                  Tao Xiang and
+                  Yi{-}Zhe Song},
+  title        = {B{\'{e}}zierSketch: {A} generative model for scalable vector
+                  sketches},
+  journal      = {CoRR},
+  volume       = {abs/2007.02190},
+  year         = {2020},
+  url          = {https://arxiv.org/abs/2007.02190},
+  eprinttype    = {arXiv},
+  eprint       = {2007.02190},
+  timestamp    = {Wed, 10 Jan 2024 18:05:26 +0100},
+  biburl       = {https://dblp.org/rec/journals/corr/abs-2007-02190.bib},
+  bibsource    = {dblp computer science bibliography, https://dblp.org}
+}
+```
+
 
 ## Motivation for Problem and Dataset Selection
 
-By focusing on SVG generation, we aim to overcome the limitations of raster-based approaches, such as poor scalability and loss of detail, and provide a solution that is well-suited for applications in web design, game development, and digital art.
-
-Generating images with the traditional pixel image representations is very computationally expensive. Large input sizes n x n image multiple bytes per pixel. This motivates our usage of a scalable vector image representation. We believe this representation will scale well with recent machine learning architectures.
-
-Traditional using models that generate raster images are less useful for web design, game development and other tasks. These raster images have many drawbacks...
-
-Examples: 
-
-Logos, branding, icons, ui design: require sharp interpretable images that work across different devices and and products. No additional model is required to scale up/down these images.
-
-Game design: Vector images are well suited for animation.
-
-Chatgpt and existing models are not fucused on drawing sketch images (example: [ChatGPT trying to generate a dog SVG](https://chatgpt.com/share/68cc2e09-39f4-8002-9bc6-bffad012a5e7) )
+By focusing on SVG generation, we aim to overcome the limitations of raster-based approaches, such as poor scalability and unwanted background artifacts. We hope to provide a solution that is well-suited for applications in web design, game development, and digital art. Generating images with the traditional pixel image representations is very computationally expensive. A generative image model will output an $n \times n$ image that uses multiple bytes per pixel. This motivates our usage of a scalable vector image representation. We believe this representation will scale well with recent machine learning architectures. We also see improvements we could make to how previous strategies represent the sketch data. Such as quantizing coordinates ahead of time (See diagram below).
 
 
-We use two of the datasets which were used for this task in the past, however we attempt to use a different tensor representation.
 
-We see improvements we could make to how previous stratergies represent the sketch data. Such as quantizing point coordinates ahead of time. 
+This problem presents some interesting technical challenges, which include:
+
+- Representing the sequential stroke data in a way that it can be understood by machine learning models.
+- Ensuring the quality of the training data.
+- Handling the variability and ambiguity in human sketches, which can differ greatly in style and completeness.
+- Creating models that generalize across different object categories and drawing techniques.
+- Dealing with class imbalances and sparsity in the chosen datasets.
+- Evaluating the semantic accuracy of generated SVGs, not just their visual similarity.
+
+The reason that we chose the datasets above is because they are diverse, relevant, and accessible.
+We think they will work well for generative SVG modeling. Each dataset contains a large number of hand-drawn sketches in vector formats, providing a rich source of training data. They cover a wide range of object categories and drawing styles, which we think will improve model robustness and generalization. Additionally, these datasets are well documented, used in other academic research, and available under permissive licenses. This makes them useful for both experimentation and reproducible results.
 
 
 ## Dataset Access
