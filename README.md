@@ -142,16 +142,17 @@ pages = {44:1--44:10}
 
 By focusing on SVG generation, we aim to overcome the limitations of raster-based approaches, such as poor scalability and unwanted background artifacts. We hope to provide a solution that is well-suited for applications in web design, game development, and digital art. Generating images with the traditional pixel image representations is very computationally expensive. A generative image model will output an $n \times n$ image that uses multiple bytes per pixel. This motivates our usage of a scalable vector image representation. We believe this representation will scale well with recent machine learning architectures. We also see improvements we could make to how previous strategies represent the sketch data. Such as quantizing coordinates ahead of time (See diagram below).
 
+<img src="https://github.com/user-attachments/assets/a0ff91dc-6e19-4c23-bbf2-9fa8a2a9bfd4" alt="Diagram illustration" width="400"/>
 
 
 This problem presents some interesting technical challenges, which include:
 
-- Representing the sequential stroke data in a way that it can be understood by machine learning models.
+- Representing a sketch in a way that it can be understood by machine learning models.
 - Ensuring the quality of the training data.
-- Handling the variability and ambiguity in human sketches, which can differ greatly in style and completeness.
+- Handling the ambiguity in human sketches, which can differ greatly in style and completeness.
 - Creating models that generalize across different object categories and drawing techniques.
 - Dealing with class imbalances and sparsity in the chosen datasets.
-- Evaluating the semantic accuracy of generated SVGs, not just their visual similarity.
+- Evaluating the semantic accuracy of generated SVG sketches, not just their visual similarity.
 
 The reason that we chose the datasets above is because they are diverse, relevant, and accessible.
 We think they will work well for generative SVG modeling. Each dataset contains a large number of hand-drawn sketches in vector formats, providing a rich source of training data. They cover a wide range of object categories and drawing styles, which we think will improve model robustness and generalization. Additionally, these datasets are well documented, used in other academic research, and available under permissive licenses. This makes them useful for both experimentation and reproducible results.
@@ -171,4 +172,5 @@ Python >= 3.9
 pip install -r requirements.txt
 
 ```
+
 
