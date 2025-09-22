@@ -160,7 +160,7 @@ We think they will work well for generative SVG modeling. Each dataset contains 
 
 ## Dataset Access
 
-- Matthew Taylor has created a module `dataset.py` for downloading, organizing, preprocessing and using the datasets with `pytorch`. An example of how to use this dataset is in `dataset_visualization.ipynb`
+- Matthew Taylor has created a module `dataset.py` for downloading, organizing, preprocessing and using the datasets with `pytorch`. An example of how to use the datasets is in the notebook [dataset_visualization.ipynb](https://github.com/MatthewAndreTaylor/Generative-SVG/blob/main/dataset_visualization.ipynb)
 
 - Sebastian Tasson validated that the dataset was accessible in the example notebook.
 
@@ -172,5 +172,6 @@ Python >= 3.9
 pip install -r requirements.txt
 
 ```
+
 
 
