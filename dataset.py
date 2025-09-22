@@ -4,12 +4,13 @@ import urllib.request
 import urllib.parse
 import zipfile
 import torch
+import random
 from tqdm import tqdm
 from torch.utils.data import Dataset
 from typing import Callable, Optional
+from collections import defaultdict
 
 from prepare_data import quickdraw_to_svg
-
 
 # Transforming all the items in the dataset
 class BaseSketchDataset(Dataset):
@@ -168,3 +169,43 @@ class SketchyDataset(BaseSketchDataset):
                         data.append(svg_data)
                     
         super().__init__(data, **kwargs)
+
+def split_data(dataset, splits=(0.8, 0.1, 0.1), seed=42, cache_path=None, overwrite=False):
+    if cache_path and os.path.exists(cache_path) and not overwrite:
+        with open(cache_path) as f:
+            return json.load(f)
+    
+    rng = random.Random(seed)
+    
+    #keep = []
+    #for i in range(len(dataset)):
+    #    keep.append(i)
+    
+    a, b, c = splits
+    s = a + b + c
+    a, b, c = a / s, b / s, c / s
+
+    n = len(dataset)
+    all_indices = list(range(n))
+    rng.shuffle(all_indices)
+    
+    n_train = int(round(n * a))
+    n_val   = int(round(n * b))
+    n_test  = n - n_train - n_val
+
+    train = all_indices[:n_train]
+    val   = all_indices[n_train:n_train + n_val]
+    test  = all_indices[n_train + n_val:n_train + n_val + n_test]
+
+    out = {
+        "train": sorted(train),
+        "val": sorted(val),
+        "test": sorted(test),
+        "meta": {"seed": seed, "splits": [a, b, c]},
+    }
+
+    if cache_path:
+        os.makedirs(os.path.dirname(os.path.abspath(cache_path)), exist_ok=True)
+        with open(cache_path, "w") as f: json.dump(out, f, indent=2)
+
+    return out
