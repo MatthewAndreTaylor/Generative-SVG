@@ -29,6 +29,11 @@ We are addressing the problem of automatic generation of SVG images from hand-dr
 - **License:** This data made available by Google, Inc. under the Creative Commons Attribution 4.0 International license.
 https://creativecommons.org/licenses/by/4.0/
 
+
+- **Name:** The Sketchy Database
+- **Location:** [https://drive.google.com/file/d/1Qr8HhjRuGqgDONHigGszyHG_awCstivo/view](https://drive.google.com/file/d/1Qr8HhjRuGqgDONHigGszyHG_awCstivo/view)
+- **License:** The MIT License (MIT) Copyright (c) 2016 janesjanes
+
 ## Accuracy Measurement
 
 We plan to measure the accuracy of our system using:
@@ -96,6 +101,16 @@ year={2012},
 volume={31},
 number={4},
 pages = {44:1--44:10}
+}
+```
+
+```bibtex
+@article{
+ sketchy2016,
+ author = {Patsorn Sangkloy and Nathan Burnell and Cusuh Ham and James Hays},
+ title = {The Sketchy Database: Learning to Retrieve Badly Drawn Bunnies},
+ journal = {ACM Transactions on Graphics (proceedings of SIGGRAPH)},
+ year = {2016},
 }
 ```
 

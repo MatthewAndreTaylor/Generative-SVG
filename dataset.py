@@ -11,7 +11,7 @@ from typing import Callable, Optional
 from prepare_data import quickdraw_to_svg
 
 
-# transforming all the items in the dataset
+# Transforming all the items in the dataset
 class BaseSketchDataset(Dataset):
     def __init__(
         self,
@@ -120,3 +120,51 @@ class QuickDrawDataset(BaseSketchDataset):
                     (label, f"https://storage.googleapis.com/{item['bucket']}/{enc}")
                 )
         return label_files
+
+
+
+class SketchyDataset(BaseSketchDataset):
+    # Note: sketchy is a bit larger and requires 7z and extra pre-processing
+    
+    # https://sketchy.eye.gatech.edu
+    # https://drive.google.com/file/d/1Qr8HhjRuGqgDONHigGszyHG_awCstivo/view
+    
+    bucket_url = "https://drive.usercontent.google.com/download?authuser=0&export=download&id=1Qr8HhjRuGqgDONHigGszyHG_awCstivo&confirm=t&uuid=8cbdb41b-3dd4-41d3-8882-19056058bf2b&at=AN8xHorrKtrtyloclKhSah7qRz9L%3A1758498381130"
+    out_dir = "data/sketchy"
+    
+    def __init__(self, labels, download: bool = False, **kwargs):
+        self.labels = labels
+
+        if download:
+            print("Downloading Sketchy files")
+            os.makedirs(self.out_dir, exist_ok=True)
+            if not os.path.exists("sketchy.7z"):
+                urllib.request.urlretrieve(self.bucket_url, "sketchy.7z")
+                
+            if not os.path.exists(f"{self.out_dir}/sketches"):
+                try:
+                    import py7zr
+                    with py7zr.SevenZipFile("sketchy.7z", mode="r") as z:
+                        z.extractall(path=self.out_dir)
+
+                except ImportError:
+                    raise ImportError("Please install py7zr to extract Sketchy dataset: pip install py7zr")
+            
+        data = []
+        labels_path = f"{self.out_dir}/sketches"
+        downloaded_labels = set(os.listdir(labels_path))
+        
+        for label in tqdm(labels, desc="Loading Sketchy files"):
+            if label not in downloaded_labels:
+                raise ValueError("Dataset missing or label has no samples.")
+
+            data_path = f"{self.out_dir}/sketches/{label}"
+            for file in os.listdir(data_path):
+                if file.endswith(".svg"):
+                    svg_path = f"{data_path}/{file}"
+
+                    with open(svg_path, "r") as f:
+                        svg_data = f.read()
+                        data.append(svg_data)
+                    
+        super().__init__(data, **kwargs)
