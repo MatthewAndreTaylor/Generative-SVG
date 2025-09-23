@@ -21,7 +21,7 @@ Both of us will collaborate on the end product including documentation and a wor
 ## Machine-Vision Problem
 
 We are addressing the problem of automatically generating SVG sketch images conditioned on object labels.
-By extracting important features from labelled sketches, we aim to be able to generate new sketches.
+By extracting important features from labeled sketches, we aim to be able to generate new sketches.
 This involves learning the underlying structure and semantics of the sketches. Then, training a model to produce outputs that are both visually accurate to the requested target label and semantically meaningful.
 
 ## Dataset Name and Location
@@ -53,8 +53,8 @@ We are looking at a variety of different methods of determining the accuracy of 
   - Cons: High bias unless given a large enough dataset, can sometimes contradict human raters.
 
 - CLIP (Contrastive Language-Image Pre-Training) Score
-  - Pros: Looks at text-image similarity, useful for conditional generation, correlates with human judgement.
-  - Cons: May have difficulties with sketch images as it was trained on internet images, prompt sensitivty.
+  - Pros: Looks at text-image similarity, useful for conditional generation, correlates with human judgment.
+  - Cons: May have difficulties with sketch images as it was trained on internet images, prompt sensitivity.
 
 - GIQA (Generative Image Quality Assessment)
   - Pros: Useful for filtering and ranking generations.
@@ -69,9 +69,7 @@ We are looking at a variety of different methods of determining the accuracy of 
  booktitle = {Proc. CVPR},
  year = {2020},
 } 
-```
 
-```bibtex
 @article{DBLP:journals/corr/VaswaniSPUJGKP17,
   author       = {Ashish Vaswani and
                   Noam Shazeer and
@@ -92,10 +90,7 @@ We are looking at a variety of different methods of determining the accuracy of 
   biburl       = {https://dblp.org/rec/journals/corr/VaswaniSPUJGKP17.bib},
   bibsource    = {dblp computer science bibliography, https://dblp.org}
 }
-```
 
-
-```bibtex
 @article{DBLP:journals/corr/abs-2001-02600,
   author       = {Peng Xu},
   title        = {Deep Learning for Free-Hand Sketch: {A} Survey},
@@ -109,9 +104,7 @@ We are looking at a variety of different methods of determining the accuracy of 
   biburl       = {https://dblp.org/rec/journals/corr/abs-2001-02600.bib},
   bibsource    = {dblp computer science bibliography, https://dblp.org}
 }
-```
 
-```bibtex
 @article{eitz2012hdhso,
 author={Eitz, Mathias and Hays, James and Alexa, Marc},
 title={How Do Humans Sketch Objects?},
@@ -121,9 +114,7 @@ volume={31},
 number={4},
 pages = {44:1--44:10}
 }
-```
 
-```bibtex
 @article{
  sketchy2016,
  author = {Patsorn Sangkloy and Nathan Burnell and Cusuh Ham and James Hays},
@@ -131,9 +122,7 @@ pages = {44:1--44:10}
  journal = {ACM Transactions on Graphics (proceedings of SIGGRAPH)},
  year = {2016},
 }
-```
 
-```bibtex
 @article{DBLP:journals/corr/abs-2007-02190,
   author       = {Ayan Das and
                   Yongxin Yang and
@@ -152,9 +141,7 @@ pages = {44:1--44:10}
   biburl       = {https://dblp.org/rec/journals/corr/abs-2007-02190.bib},
   bibsource    = {dblp computer science bibliography, https://dblp.org}
 }
-```
 
-```bibtex
 @misc{chong2020effectivelyunbiasedfidinception,
       title={Effectively Unbiased FID and Inception Score and where to find them}, 
       author={Min Jin Chong and David Forsyth},
@@ -164,9 +151,7 @@ pages = {44:1--44:10}
       primaryClass={cs.CV},
       url={https://arxiv.org/abs/1911.07023}, 
 }
-```
 
-```bibtex
 @misc{hessel2022clipscorereferencefreeevaluationmetric,
       title={CLIPScore: A Reference-free Evaluation Metric for Image Captioning}, 
       author={Jack Hessel and Ari Holtzman and Maxwell Forbes and Ronan Le Bras and Yejin Choi},
@@ -176,9 +161,7 @@ pages = {44:1--44:10}
       primaryClass={cs.CV},
       url={https://arxiv.org/abs/2104.08718}, 
 }
-```
 
-```bibtex
 @misc{gu2020giqageneratedimagequality,
       title={GIQA: Generated Image Quality Assessment}, 
       author={Shuyang Gu and Jianmin Bao and Dong Chen and Fang Wen},
@@ -188,9 +171,7 @@ pages = {44:1--44:10}
       primaryClass={eess.IV},
       url={https://arxiv.org/abs/2003.08932}, 
 }
-```
 
-```bibtex
 @misc{borji2021prosconsganevaluation,
       title={Pros and Cons of GAN Evaluation Measures: New Developments}, 
       author={Ali Borji},
@@ -220,8 +201,7 @@ This problem presents interesting technical challenges, which include:
 - Dealing with class imbalances and sparsity in the chosen datasets.
 - Evaluating the semantic accuracy of generated SVG sketches, not just their visual similarity.
 
-The reason that we chose the datasets above is because they are diverse, relevant, and accessible.
-We think they will work well for generative SVG modeling. Each dataset contains a large number of hand-drawn sketches in vector formats, providing a rich source of training data. They cover a wide range of object categories and drawing styles, which we think will improve model robustness and generalization. Last, these datasets are well documented, used in other academic research, and available under permissive licenses.
+The reason that we chose the datasets above is because they are diverse, relevant, and accessible. Each dataset contains a large number of hand-drawn sketches in vector formats. They cover a wide range of object categories and drawing styles. Last, these datasets are well documented, used in other academic research, and available under permissive licenses.
 
 
 ## Dataset Access
