@@ -1,5 +1,11 @@
 # Generative-SVG
 
+<img src="https://img.shields.io/badge/GitHub-181717?style=flat&logo=github&logoColor=white" width="65" height="20" alt="GitHub" style="vertical-align:middle;"/> 
+Source code repository: 
+<a href="https://github.com/MatthewAndreTaylor/Generative-SVG">
+  https://github.com/MatthewAndreTaylor/Generative-SVG
+</a>
+
 ## Team Members
 
 <code>![Profile MatthewAndreTaylor](https://images.weserv.nl/?url=avatars.githubusercontent.com/u/100451342?v=4&h=30&w=30&fit=cover&mask=circle&maxage=7d) <a href="https://github.com/MatthewAndreTaylor">Matthew Taylor</a></code> , 
@@ -39,20 +45,20 @@ https://creativecommons.org/licenses/by/4.0/
 
 We are looking at a variety of different methods of determining the accuracy of our system including:
 - User study for qualitative assessment
--- Pros: Human perception can easily determine visual/aesthetic qualities and alignment with what is meant to be generated.
--- Cons: It would be tedious & time consuming to collect with the size of the dataset and human subjectivity and bias.
+  - Pros: Human perception can easily determine visual/aesthetic qualities and alignment with what is meant to be generated.
+  - Cons: It would be tedious & time consuming to collect with the size of the dataset and human subjectivity and bias.
 
 - FiD (Frechet Inception Distance)
--- Pros: Benchmark in image generation, consistency with human inspection, sensitivity to small changes in distribution.
--- Cons: High bias unless given a large enough dataset, can sometimes contradict human raters.
+  - Pros: Benchmark in image generation, consistency with human inspection, sensitivity to small changes in distribution.
+  - Cons: High bias unless given a large enough dataset, can sometimes contradict human raters.
 
 - CLIP (Contrastive Language-Image Pre-Training) Score
--- Pros: Looks at text-image similarity, useful for conditional generation, correlates with human judgement.
--- Cons: May have difficulties with sketch images as it was trained on internet images, prompt sensitivty.
+  - Pros: Looks at text-image similarity, useful for conditional generation, correlates with human judgement.
+  - Cons: May have difficulties with sketch images as it was trained on internet images, prompt sensitivty.
 
 - GIQA (Generative Image Quality Assessment)
--- Pros: Useful for filtering and ranking generations.
--- Cons: Focuses on single-image fidelity rather than the full data distribution.
+  - Pros: Useful for filtering and ranking generations.
+  - Cons: Focuses on single-image fidelity rather than the full data distribution.
 
 ## Paper References
 
@@ -203,18 +209,19 @@ By focusing on SVG generation, we aim to overcome the limitations of raster-base
 
 <img src="https://github.com/user-attachments/assets/a0ff91dc-6e19-4c23-bbf2-9fa8a2a9bfd4" alt="Diagram illustration" width="400"/>
 
+<small><span>The diagram made above shows how we think using a quantized representation may be a good approach to the problem</span></small>
 
-This problem presents some interesting technical challenges, which include:
+This problem presents interesting technical challenges, which include:
 
 - Representing a sketch in a way that it can be understood by machine learning models.
 - Ensuring the quality of the training data.
-- Handling the ambiguity in human sketches, which can differ greatly in style and completeness.
-- Creating models that generalize across different object categories and drawing techniques.
+- Addressing uncertainty of style and fidelity in human sketches. 
+- Creating models that generalize to drawing techniques and object types.
 - Dealing with class imbalances and sparsity in the chosen datasets.
 - Evaluating the semantic accuracy of generated SVG sketches, not just their visual similarity.
 
 The reason that we chose the datasets above is because they are diverse, relevant, and accessible.
-We think they will work well for generative SVG modeling. Each dataset contains a large number of hand-drawn sketches in vector formats, providing a rich source of training data. They cover a wide range of object categories and drawing styles, which we think will improve model robustness and generalization. Additionally, these datasets are well documented, used in other academic research, and available under permissive licenses. This makes them useful for both experimentation and reproducible results.
+We think they will work well for generative SVG modeling. Each dataset contains a large number of hand-drawn sketches in vector formats, providing a rich source of training data. They cover a wide range of object categories and drawing styles, which we think will improve model robustness and generalization. Last, these datasets are well documented, used in other academic research, and available under permissive licenses.
 
 
 ## Dataset Access
@@ -223,15 +230,8 @@ We think they will work well for generative SVG modeling. Each dataset contains 
 
 - Sebastian Tasson validated that the dataset was accessible in the example notebook.
 
-## Prerequisites
 
-Python >= 3.9
+## Report Details
 
-```bash
-pip install -r requirements.txt
-
-```
-
-
-
-
+Both Matthew Taylor and Sebastian Tasson helped to distribute tasks, collect paper references and select / get access to the datasets that will be used for this project. Matthew wrote about the problem and motivation. Sebastian wrote about measuring accuracy.
+Both contributed to writing and reviewing this report.
