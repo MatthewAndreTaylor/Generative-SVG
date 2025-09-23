@@ -208,10 +208,11 @@ The reason that we chose the datasets above is because they are diverse, relevan
 
 - Matthew Taylor has created a module `dataset.py` for downloading, organizing, preprocessing and using the datasets with `pytorch`. An example of how to use the datasets is in the notebook [dataset_visualization.ipynb](https://github.com/MatthewAndreTaylor/Generative-SVG/blob/main/dataset_visualization.ipynb)
 
-- Sebastian Tasson validated that the dataset was accessible in the example notebook.
+- Sebastian Tasson validated that the datasets are accessible in the example notebook.
 
 
 ## Report Details
 
 Both Matthew Taylor and Sebastian Tasson helped to distribute tasks, collect paper references and select / get access to the datasets that will be used for this project. Matthew wrote about the problem and motivation. Sebastian wrote about measuring accuracy.
 Both contributed to writing and reviewing this report.
+
