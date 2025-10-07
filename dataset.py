@@ -11,6 +11,7 @@ from typing import Callable, Optional
 
 from prepare_data import quickdraw_to_svg
 
+
 # Transforming all the items in the dataset
 class BaseSketchDataset(Dataset):
     def __init__(
@@ -53,11 +54,15 @@ class TUBerlinDataset(BaseSketchDataset):
             os.makedirs(self.out_dir, exist_ok=True)
             if not os.path.exists("sketches_svg.zip"):
                 try:
-                    urllib.request.urlretrieve(self.primary_bucket_url, "sketches_svg.zip")
+                    urllib.request.urlretrieve(
+                        self.primary_bucket_url, "sketches_svg.zip"
+                    )
                 except Exception as e:
                     print(f"Error downloading from primary bucket: {e}")
                     try:
-                        urllib.request.urlretrieve(self.backup_bucket_url, "sketches_svg.zip")
+                        urllib.request.urlretrieve(
+                            self.backup_bucket_url, "sketches_svg.zip"
+                        )
                     except Exception as e:
                         print(f"Error downloading from backup bucket: {e}")
 
@@ -131,16 +136,15 @@ class QuickDrawDataset(BaseSketchDataset):
         return label_files
 
 
-
 class SketchyDataset(BaseSketchDataset):
     # Note: sketchy is a bit larger and requires 7z and extra pre-processing
-    
+
     # https://sketchy.eye.gatech.edu
     # https://drive.google.com/file/d/1Qr8HhjRuGqgDONHigGszyHG_awCstivo/view
-    
+
     bucket_url = "https://drive.usercontent.google.com/download?authuser=0&export=download&id=1Qr8HhjRuGqgDONHigGszyHG_awCstivo&confirm=t&uuid=8cbdb41b-3dd4-41d3-8882-19056058bf2b&at=AN8xHorrKtrtyloclKhSah7qRz9L%3A1758498381130"
     out_dir = "data/sketchy"
-    
+
     def __init__(self, labels, download: bool = False, **kwargs):
         self.labels = labels
 
@@ -149,20 +153,23 @@ class SketchyDataset(BaseSketchDataset):
             os.makedirs(self.out_dir, exist_ok=True)
             if not os.path.exists("sketchy.7z"):
                 urllib.request.urlretrieve(self.bucket_url, "sketchy.7z")
-                
+
             if not os.path.exists(f"{self.out_dir}/sketches"):
                 try:
                     import py7zr
+
                     with py7zr.SevenZipFile("sketchy.7z", mode="r") as z:
                         z.extractall(path=self.out_dir)
 
                 except ImportError:
-                    raise ImportError("Please install py7zr to extract Sketchy dataset: pip install py7zr")
-            
+                    raise ImportError(
+                        "Please install py7zr to extract Sketchy dataset: pip install py7zr"
+                    )
+
         data = []
         labels_path = f"{self.out_dir}/sketches"
         downloaded_labels = set(os.listdir(labels_path))
-        
+
         for label in tqdm(labels, desc="Loading Sketchy files"):
             if label not in downloaded_labels:
                 raise ValueError("Dataset missing or label has no samples.")
@@ -175,21 +182,24 @@ class SketchyDataset(BaseSketchDataset):
                     with open(svg_path, "r") as f:
                         svg_data = f.read()
                         data.append(svg_data)
-                    
+
         super().__init__(data, **kwargs)
 
-def split_data(dataset, splits=(0.8, 0.1, 0.1), seed=42, cache_path=None, overwrite=False):
+
+def split_data(
+    dataset, splits=(0.8, 0.1, 0.1), seed=42, cache_path=None, overwrite=False
+):
     if cache_path and os.path.exists(cache_path) and not overwrite:
         with open(cache_path) as f:
             return json.load(f)
-    
+
     rng = random.Random(seed)
     torch.manual_seed(seed)
-    
-    #keep = []
-    #for i in range(len(dataset)):
+
+    # keep = []
+    # for i in range(len(dataset)):
     #    keep.append(i)
-    
+
     a, b, c = splits
     s = a + b + c
     a, b, c = a / s, b / s, c / s
@@ -197,14 +207,14 @@ def split_data(dataset, splits=(0.8, 0.1, 0.1), seed=42, cache_path=None, overwr
     n = len(dataset)
     all_indices = list(range(n))
     rng.shuffle(all_indices)
-    
+
     n_train = int(round(n * a))
-    n_val   = int(round(n * b))
-    n_test  = n - n_train - n_val
+    n_val = int(round(n * b))
+    n_test = n - n_train - n_val
 
     train = all_indices[:n_train]
-    val   = all_indices[n_train:n_train + n_val]
-    test  = all_indices[n_train + n_val:n_train + n_val + n_test]
+    val = all_indices[n_train : n_train + n_val]
+    test = all_indices[n_train + n_val : n_train + n_val + n_test]
 
     out = {
         "train": sorted(train),
@@ -215,6 +225,7 @@ def split_data(dataset, splits=(0.8, 0.1, 0.1), seed=42, cache_path=None, overwr
 
     if cache_path:
         os.makedirs(os.path.dirname(os.path.abspath(cache_path)), exist_ok=True)
-        with open(cache_path, "w") as f: json.dump(out, f, indent=2)
+        with open(cache_path, "w") as f:
+            json.dump(out, f, indent=2)
 
     return out

@@ -15,50 +15,56 @@ from prepare_data import parse_viewbox, make_quantizer
 
 # Instead of using clustering what if we used a very large dictionary for perfect reconstruction?
 
+
 class AbsolutePenPositionTokenizer:
-    
+
     def __init__(self, bins=128):
         self.bins = bins
         self.vocab = {}
         self.inv_vocab = {}
-        
+
         idx = 0
         for x in range(self.bins):
             for y in range(self.bins):
                 self.vocab[(x, y)] = idx
                 self.inv_vocab[idx] = (x, y)
                 idx += 1
-        
+
         for pen_token in ["MOVE", "PAD", "START", "END"]:
             self.vocab[pen_token] = idx
             self.inv_vocab[idx] = pen_token
             idx += 1
-            
-    
+
     def encode(self, svg_content):
         paths, _ = svgstr2paths(svg_content)
         min_x, max_x, min_y, max_y = parse_viewbox(svg_content)
         quantize_point = make_quantizer(min_x, max_x, min_y, max_y, self.bins)
-        
+
         tokens = [self.vocab["START"]]
         for path in paths:
             # Move command
             start_quantized = quantize_point(path[0].start)
             tokens.append(self.vocab["MOVE"])
-            tokens.append(self.vocab[(int(start_quantized.real), int(start_quantized.imag))])
-            
+            tokens.append(
+                self.vocab[(int(start_quantized.real), int(start_quantized.imag))]
+            )
+
             # Line segments
             for seg in path:
                 end_quantized = quantize_point(seg.end)
-                tokens.append(self.vocab[(int(end_quantized.real), int(end_quantized.imag))])
-                
+                tokens.append(
+                    self.vocab[(int(end_quantized.real), int(end_quantized.imag))]
+                )
+
         tokens.append(self.vocab["END"])
         return tokens
-    
+
     def decode(self, tokens):
-        svg_parts = [f'<svg viewBox="0 0 {self.bins} {self.bins}"><g stroke-width="0.8">']
+        svg_parts = [
+            f'<svg viewBox="0 0 {self.bins} {self.bins}"><g stroke-width="0.8">'
+        ]
         path_cmds = []
-        
+
         for token in tokens:
             item = self.inv_vocab[token]
             if item == "START":
@@ -70,7 +76,9 @@ class AbsolutePenPositionTokenizer:
             elif item == "MOVE":
                 if path_cmds:
                     path_str = " ".join(path_cmds)
-                    svg_parts.append(f'<path d="{path_str}" stroke="black" fill="none"/>')
+                    svg_parts.append(
+                        f'<path d="{path_str}" stroke="black" fill="none"/>'
+                    )
                     path_cmds = []
             else:
                 x, y = item
@@ -78,19 +86,21 @@ class AbsolutePenPositionTokenizer:
                     path_cmds.append(f"M {x} {y}")
                 else:
                     path_cmds.append(f"L {x} {y}")
-                    
+
         # Flush last path
         if path_cmds:
             path_str = " ".join(path_cmds)
             svg_parts.append(f'<path d="{path_str}" stroke="black" fill="none"/>')
-        
+
         svg_parts.append("</g></svg>")
         return "\n".join(svg_parts)
 
 
-def svg_stroke5(
-    svg_content: str, bins=128, max_sequence_length: int = 200
-):
+class AbsoluteBezierPenPositionTokenizer:
+    pass
+
+
+def svg_stroke5(svg_content: str, bins=128, max_sequence_length: int = 200):
     """
     Convert SVG path data to a quantized stroke-5 tensor representation.
     Each row: (dx, dy, p0, p1, p2) where p0=move, p1=line, p2=end-of-sequence. (One hot pen state encoding)
@@ -126,10 +136,9 @@ def svg_stroke5(
             tensor[idx] = torch.tensor([dx, dy, 1.0, 0.0, 0.0])
             prev = end_quantized
             idx += 1
-            
+
     tensor[idx:, 4] = 1.0  # mark unused rows with pen state p2=1
     return tensor
-
 
 
 def svg_strokes_to_tensor_quantized(
@@ -273,7 +282,7 @@ def svg_to_tensor_quantized(svg_content: str, bins=128, max_sequence_length: int
             tensor[idx, 1] = end_quantized.imag
             tensor[idx, 2] = 1.0  # Line command
             idx += 1
-    
+
     return tensor
 
 
