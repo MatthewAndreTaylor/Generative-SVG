@@ -112,9 +112,6 @@ def clean_svg(svg_content, bins):
     # Remove `.0` from floats like 123.0 → 123
     svg_text = re.sub(r"(\d+)\.0(?=[^0-9])", r"\1", svg_text)
 
-    # Remove empty <defs/>
-    svg_text = svg_text.replace("<defs/>", "")
-
     # remove any width and height attributes
     svg_text = re.sub(r'\s+(width|height)="[^"]*"', "", svg_text)
 
@@ -122,19 +119,13 @@ def clean_svg(svg_content, bins):
     svg_text = re.sub(r'\s+version="[^"]*"', "", svg_text)
     svg_text = re.sub(r'\s+baseProfile="[^"]*"', "", svg_text)
 
-    # set the viewBox attribute back to the number of bins
-    # min_x, max_x, min_y, max_y = 0, bins, 0, bins
-    # min_x, max_x, min_y, max_y = int(min_x), int(max_x), int(min_y), int(max_y)
-    # viewbox_value = f"{min_x} {min_y} {max_x - min_x} {max_y - min_y}"
-    # svg_text = re.sub(r'viewBox="[^"]*"', f'viewBox="{viewbox_value}"', svg_text)
-
     # should follow the pattern d="[Letter][NUMBER][,][NUMBER][SPACE][Letter|Number][,][NUMBER]..."
     # note there is always a space after each set of numbers except the last one
     # remove all empty spaces after each letter in each path
-    svg_text = re.sub(r"([MmLlCcSsQqTtAaZz])\s+", r"\1", svg_text)
+    svg_text = re.sub(r"([MmLlCcSsQqAaZz])\s+", r"\1", svg_text)
 
     # remove all empty spaces before each single letter in each path
-    svg_text = re.sub(r"\s+([MmLlCcSsQqTtAaZz])(?![A-Za-z])", r"\1", svg_text)
+    svg_text = re.sub(r"\s+([MmLlCcSsQqAaZz])(?![A-Za-z])", r"\1", svg_text)
 
     ### OPTIONAL
     # remove fill and stroke attributes
@@ -149,6 +140,9 @@ def clean_svg(svg_content, bins):
 
     # remove all whitespace between elements
     svg_text = re.sub(r">\s+<", "><", svg_text)
+
+    # Remove empty <defs/>
+    svg_text = svg_text.replace("<defs/>", "")
     return svg_text
 
 
@@ -159,9 +153,27 @@ def convert_and_quantize_svg(svg_content, bins: int = 128):
     # Use paths2Drawing to get Drawing object, then write to string
     dwg = paths2Drawing(quantized_paths)
     svg_content = dwg.tostring()
-    output = clean_svg(svg_content, bins=bins)
+    output = clean_svg(svg_content, bins)
     return output
 
+
+def add_viewbox(svg_content):
+    # find the width and height of the SVG using regex
+    match = re.search(r'width="([^"]+)" height="([^"]+)"', svg_content)
+    if match:
+        width = match.group(1)
+        height = match.group(2)
+        viewbox_value = f"0 0 {width} {height}"
+        if re.search(r'viewBox="[^"]*"', svg_content):
+            svg_content = re.sub(r'viewBox="[^"]*"', f'viewBox="{viewbox_value}"', svg_content)
+        else:
+            svg_content = re.sub(r'(<svg[^>]*)', r'\1 viewBox="' + viewbox_value + '"', svg_content, count=1)
+    return svg_content
+
+
+def remove_rect(svg_content):
+    svg_content = re.sub(r'<rect[^>]*/>', '', svg_content)
+    return svg_content
 
 # Utilities for converting QuickDraw sketches to SVG
 

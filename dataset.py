@@ -8,7 +8,6 @@ import random
 from tqdm import tqdm
 from torch.utils.data import Dataset
 from typing import Callable, Optional
-from collections import defaultdict
 
 from prepare_data import quickdraw_to_svg
 
@@ -41,7 +40,9 @@ class BaseSketchDataset(Dataset):
 
 class TUBerlinDataset(BaseSketchDataset):
     # https://cybertron.cg.tu-berlin.de/eitz/projects/classifysketch
-    bucket_url = "https://cybertron.cg.tu-berlin.de/eitz/projects/classifysketch/sketches_svg.zip"
+    primary_bucket_url = "https://cybertron.cg.tu-berlin.de/eitz/projects/classifysketch/sketches_svg.zip"
+    backup_bucket_url = "https://drive.usercontent.google.com/download?id=1qQIasYwt-7MC8eqa0XRGYcBO_DBnY6um&export=download&authuser=0&confirm=t&uuid=333a7b8f-2227-4ea5-ba13-a1f893a27284&at=AKSUxGO0oPpXoLYi70ctYjKeN4GB:1759851532662"
+
     out_dir = "data/tub"
 
     def __init__(self, labels, download: bool = False, **kwargs):
@@ -51,7 +52,14 @@ class TUBerlinDataset(BaseSketchDataset):
             print("Downloading TUBerlin files")
             os.makedirs(self.out_dir, exist_ok=True)
             if not os.path.exists("sketches_svg.zip"):
-                urllib.request.urlretrieve(self.bucket_url, "sketches_svg.zip")
+                try:
+                    urllib.request.urlretrieve(self.primary_bucket_url, "sketches_svg.zip")
+                except Exception as e:
+                    print(f"Error downloading from primary bucket: {e}")
+                    try:
+                        urllib.request.urlretrieve(self.backup_bucket_url, "sketches_svg.zip")
+                    except Exception as e:
+                        print(f"Error downloading from backup bucket: {e}")
 
             if not os.path.exists(f"{self.out_dir}/svg"):
                 with zipfile.ZipFile("sketches_svg.zip", "r") as zip_ref:
@@ -176,6 +184,7 @@ def split_data(dataset, splits=(0.8, 0.1, 0.1), seed=42, cache_path=None, overwr
             return json.load(f)
     
     rng = random.Random(seed)
+    torch.manual_seed(seed)
     
     #keep = []
     #for i in range(len(dataset)):
