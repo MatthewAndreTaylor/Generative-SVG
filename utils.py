@@ -59,9 +59,9 @@ class AbsolutePenPositionTokenizer:
         tokens.append(self.vocab["END"])
         return tokens
 
-    def decode(self, tokens):
+    def decode(self, tokens, stroke_width=0.8):
         svg_parts = [
-            f'<svg viewBox="0 0 {self.bins} {self.bins}"><g stroke-width="0.8">'
+            f'<svg viewBox="0 0 {self.bins} {self.bins}"><g stroke-width="{stroke_width}">'
         ]
         path_cmds = []
 
