@@ -126,7 +126,7 @@ def clean_svg(svg_content, bins):
 
     # Add a <g> element after <svg ... >
     # TODO: this should be dynamic based on the original stroke width * some factor
-    svg_text = re.sub(r"(<svg[^>]*>)", r'\1<g stroke-width="0.4">', svg_text)
+    svg_text = re.sub(r"(<svg[^>]*>)", r'\1<g stroke-width="1.0">', svg_text)
     svg_text = svg_text.replace("</svg>", "</g></svg>")
 
     # remove all whitespace between elements
@@ -363,7 +363,7 @@ def stroke_to_bezier(svg_content, num_samples=20, maxError=1.0):
 # Utilities for converting QuickDraw sketches to SVG
 
 
-def quickdraw_to_svg(drawing, stroke_width=0.6, size=256):
+def quickdraw_to_svg(drawing, stroke_width=1.0, size=256):
     svg_parts = [f'<svg viewBox="0 0 {size} {size}"><g stroke-width="{stroke_width}">']
     for stroke in drawing:
         xs, ys = stroke[0], stroke[1]
