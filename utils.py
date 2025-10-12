@@ -18,7 +18,7 @@ from prepare_data import parse_viewbox, make_quantizer, stroke_to_bezier, remove
 
 class AbsolutePenPositionTokenizer:
 
-    def __init__(self, bins=128):
+    def __init__(self, bins=128, additional_tokens=[]):
         self.bins = bins
         self.vocab = {}
         self.inv_vocab = {}
@@ -33,6 +33,11 @@ class AbsolutePenPositionTokenizer:
         for pen_token in ["MOVE", "PAD", "START", "END"]:
             self.vocab[pen_token] = idx
             self.inv_vocab[idx] = pen_token
+            idx += 1
+
+        for token in additional_tokens:
+            self.vocab[token] = idx
+            self.inv_vocab[idx] = token
             idx += 1
 
     def encode(self, svg_content):
