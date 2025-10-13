@@ -200,6 +200,7 @@ def chordLengthParameterize(points):
     return u
 
 
+# This does a greedy fit of cubic Bezier curves to a set of points
 class bezier:
     @staticmethod
     def q(ctrl, t):
@@ -353,12 +354,66 @@ def stroke_to_bezier(svg_content, num_samples=20, maxError=1.0):
         # Sample path into points
         points = [cleaned_path.point(i / (num_samples - 1)) for i in range(num_samples)]
         beziers = fitCurve(points, maxError=maxError)
-        fitted_path = Path(*[CubicBezier(b[0], b[1], b[2], b[3]) for b in beziers])
-        fitted_paths.append(fitted_path)
-
+        fitted_paths.extend([CubicBezier(b[0], b[1], b[2], b[3]) for b in beziers])
+        
+    fitted_paths = [Path(*fitted_paths)]
     dwg = paths2Drawing(fitted_paths)
     return dwg.tostring()
 
+
+
+# Ramer-Douglas-Peucker (RDP) algorithm for path simplification
+def rdp(points, epsilon):
+    if len(points) < 3:
+        return points
+
+    x1, y1 = points[0]
+    x2, y2 = points[-1]
+    max_dist = 0.0
+    index = 0
+    for i in range(1, len(points) - 1):
+        x0, y0 = points[i]
+        num = abs((y2 - y1)*x0 - (x2 - x1)*y0 + x2*y1 - y2*x1)
+        den = ((y2 - y1)**2 + (x2 - x1)**2) ** 0.5
+        dist = num / den if den != 0 else 0
+        if dist > max_dist:
+            index = i
+            max_dist = dist
+
+    if max_dist > epsilon:
+        left = rdp(points[:index + 1], epsilon)
+        right = rdp(points[index:], epsilon)
+        return left[:-1] + right
+    else:
+        return [points[0], points[-1]]
+
+def stroke_to_rdp(svg_content: str, epsilon=1.0):
+    paths, _ = svgstr2paths(svg_content)
+    fitted_paths = []
+
+    for path in paths:
+        points = []
+        for seg in path:
+            if not points:
+                points.append((seg.start.real, seg.start.imag))
+            points.append((seg.end.real, seg.end.imag))
+
+        if len(points) < 2:
+            continue
+
+        simplified_points = rdp(points, epsilon)
+        fitted_path = [
+            Line(
+                complex(simplified_points[i][0], simplified_points[i][1]),
+                complex(simplified_points[i+1][0], simplified_points[i+1][1])
+            )
+            for i in range(len(simplified_points) - 1)
+        ]
+        fitted_paths.extend(fitted_path)
+        
+    fitted_paths = [Path(*fitted_paths)]
+    dwg = paths2Drawing(fitted_paths)
+    return dwg.tostring()
 
 # Utilities for converting QuickDraw sketches to SVG
 
