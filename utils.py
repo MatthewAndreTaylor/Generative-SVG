@@ -1,7 +1,7 @@
 import torch
 from svgpathtools import svgstr2paths
 
-from prepare_data import parse_viewbox, make_quantizer, stroke_to_bezier, remove_rect, add_viewbox
+from prepare_data import parse_viewbox, make_quantizer
 
 
 # We propose two novel tensor representations for SVG data:
@@ -99,67 +99,6 @@ class AbsolutePenPositionTokenizer:
 
         svg_parts.append("</g></svg>")
         return "\n".join(svg_parts)
-
-
-class AbsoluteBezierPenPositionTokenizer:
-
-    def __init__(self, bins=128):
-        self.bins = bins
-        self.vocab = {}
-        self.inv_vocab = {}
-
-        idx = 0
-        for x in range(self.bins):
-            for y in range(self.bins):
-                self.vocab[(x, y)] = idx
-                self.inv_vocab[idx] = (x, y)
-                idx += 1
-
-        for cx in range(self.bins):
-            for cy in range(self.bins):
-                self.vocab[("C", cx, cy)] = idx
-                self.inv_vocab[idx] = ("C", cx, cy)
-                idx += 1
-
-        for pen_token in ["MOVE", "PAD", "START", "END"]:
-            self.vocab[pen_token] = idx
-            self.inv_vocab[idx] = pen_token
-            idx += 1
-
-
-    def encode(self, svg_content):
-        svg_content = remove_rect(svg_content)
-        svg_content = add_viewbox(svg_content)
-        svg_content = stroke_to_bezier(svg_content)
-
-        paths, _ = svgstr2paths(svg_content)
-        min_x, max_x, min_y, max_y = parse_viewbox(svg_content)
-        quantize_point = make_quantizer(min_x, max_x, min_y, max_y, self.bins)
-
-        tokens = [self.vocab["START"]]
-        for path in paths:
-            tokens.append(self.vocab["MOVE"])
-
-            # Line segments
-            for seg in path:
-                q_start = quantize_point(seg.start)
-                q_ctrl1 = quantize_point(seg.control1)
-                q_ctrl2 = quantize_point(seg.control2)
-                q_end = quantize_point(seg.end)
-
-                tokens.append(self.vocab[(int(q_start.real), int(q_start.imag))])
-                tokens.append(self.vocab[("C", int(q_ctrl1.real), int(q_ctrl1.imag))])
-                tokens.append(self.vocab[("C", int(q_ctrl2.real), int(q_ctrl2.imag))])
-                tokens.append(self.vocab[(int(q_end.real), int(q_end.imag))])
-
-        tokens.append(self.vocab["END"])
-        return tokens
-    
-    
-    def decode(self, tokens):
-        pass
-
-
 
 
 def svg_stroke5(svg_content: str, bins=128, max_sequence_length: int = 200):

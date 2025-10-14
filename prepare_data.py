@@ -1,5 +1,6 @@
 # Matthew Taylor 2025
 
+import math
 import re
 from svgpathtools import (
     svgstr2paths,
@@ -90,7 +91,7 @@ def quantize_paths(paths, bins, svg_content):
     return quantized_paths
 
 
-def clean_svg(svg_content, bins):
+def clean_svg(svg_content):
     # Clean up XML declaration
     svg_text = re.sub(r"<\?xml[^>]+\?>", "", svg_content).strip()
 
@@ -144,7 +145,7 @@ def convert_and_quantize_svg(svg_content, bins: int = 128):
     # Use paths2Drawing to get Drawing object, then write to string
     dwg = paths2Drawing(quantized_paths)
     svg_content = dwg.tostring()
-    output = clean_svg(svg_content, bins)
+    output = clean_svg(svg_content)
     return output
 
 
@@ -340,7 +341,7 @@ def newtonRaphsonRootFind(bez, point, u):
     return u - numerator / denominator
 
 
-def stroke_to_bezier(svg_content, num_samples=20, maxError=1.0):
+def stroke_to_bezier_single(svg_content, num_samples=20, maxError=1.0):
     paths, _ = svgstr2paths(svg_content)
     fitted_paths = []
 
@@ -355,65 +356,93 @@ def stroke_to_bezier(svg_content, num_samples=20, maxError=1.0):
         points = [cleaned_path.point(i / (num_samples - 1)) for i in range(num_samples)]
         beziers = fitCurve(points, maxError=maxError)
         fitted_paths.extend([CubicBezier(b[0], b[1], b[2], b[3]) for b in beziers])
-        
+
     fitted_paths = [Path(*fitted_paths)]
     dwg = paths2Drawing(fitted_paths)
     return dwg.tostring()
 
 
-
-# Ramer-Douglas-Peucker (RDP) algorithm for path simplification
-def rdp(points, epsilon):
-    if len(points) < 3:
-        return points
-
-    x1, y1 = points[0]
-    x2, y2 = points[-1]
-    max_dist = 0.0
-    index = 0
-    for i in range(1, len(points) - 1):
-        x0, y0 = points[i]
-        num = abs((y2 - y1)*x0 - (x2 - x1)*y0 + x2*y1 - y2*x1)
-        den = ((y2 - y1)**2 + (x2 - x1)**2) ** 0.5
-        dist = num / den if den != 0 else 0
-        if dist > max_dist:
-            index = i
-            max_dist = dist
-
-    if max_dist > epsilon:
-        left = rdp(points[:index + 1], epsilon)
-        right = rdp(points[index:], epsilon)
-        return left[:-1] + right
-    else:
-        return [points[0], points[-1]]
-
-def stroke_to_rdp(svg_content: str, epsilon=1.0):
+def stroke_to_bezier(svg_content, num_samples=20, maxError=1.0):
     paths, _ = svgstr2paths(svg_content)
     fitted_paths = []
 
     for path in paths:
-        points = []
-        for seg in path:
-            if not points:
-                points.append((seg.start.real, seg.start.imag))
-            points.append((seg.end.real, seg.end.imag))
-
-        if len(points) < 2:
+        cleaned_segments = [seg for seg in path if seg.start != seg.end]
+        if not cleaned_segments:
             continue
 
-        simplified_points = rdp(points, epsilon)
-        fitted_path = [
-            Line(
-                complex(simplified_points[i][0], simplified_points[i][1]),
-                complex(simplified_points[i+1][0], simplified_points[i+1][1])
-            )
-            for i in range(len(simplified_points) - 1)
-        ]
-        fitted_paths.extend(fitted_path)
-        
-    fitted_paths = [Path(*fitted_paths)]
+        cleaned_path = Path(*cleaned_segments)
+
+        # Sample path into points
+        points = [cleaned_path.point(i / (num_samples - 1)) for i in range(num_samples)]
+        beziers = fitCurve(points, maxError=maxError)
+        fitted_path = Path(*[CubicBezier(b[0], b[1], b[2], b[3]) for b in beziers])
+        fitted_paths.append(fitted_path)
+
     dwg = paths2Drawing(fitted_paths)
     return dwg.tostring()
+
+
+def rdp(points, epsilon):
+    if len(points) < 3:
+        return points
+
+    start, end = points[0], points[-1]
+    # Path is one singular loop
+    if start == end:
+        end = points[-2]
+
+    dx = end[0] - start[0]
+    dy = end[1] - start[1]
+    line_len = math.hypot(dx, dy)
+    max_dist = 0
+    index = 0
+
+    for i in range(1, len(points) - 1):
+        dist = (
+            abs(dy * (start[0] - points[i][0]) - dx * (start[1] - points[i][1]))
+            / line_len
+        )
+        if dist > max_dist:
+            index, max_dist = i, dist
+
+    if max_dist > epsilon:
+        left = rdp(points[: index + 1], epsilon)
+        right = rdp(points[index:], epsilon)
+        return left[:-1] + right
+    else:
+        return [start, end]
+
+
+def stroke_to_rdp(svg_content, epsilon=0.5):
+    paths, _ = svgstr2paths(svg_content)
+    view_box = parse_viewbox(svg_content)
+    fitted_paths = []
+
+    for path in paths:
+        points = [(path[0].start.real, path[0].start.imag)]
+        points.extend([(seg.end.real, seg.end.imag) for seg in path])
+        deduped_points = [points[0]]
+        for p in points[1:]:
+            if p != deduped_points[-1]:
+                deduped_points.append(p)
+
+        simplified = rdp(deduped_points, epsilon)
+        if len(simplified) < 2:
+            continue
+
+        line_segments = [
+            Line(complex(s[0], s[1]), complex(e[0], e[1]))
+            for s, e in zip(simplified[:-1], simplified[1:])
+        ]
+        fitted_paths.append(Path(*line_segments))
+
+    svg_attribs = {
+        "viewBox": f"{view_box[0]} {view_box[2]} {view_box[1]-view_box[0]} {view_box[3]-view_box[2]}"
+    }
+    dwg = paths2Drawing(fitted_paths, svg_attributes=svg_attribs)
+    return dwg.tostring()
+
 
 # Utilities for converting QuickDraw sketches to SVG
 
