@@ -73,10 +73,17 @@ class TUBerlinDataset(BaseSketchDataset):
         data = []
         labels_path = f"{self.out_dir}/svg"
         downloaded_labels = set(os.listdir(labels_path))
+        
+        self.label_map = {}
+        self.labels = []
+        i = 0
 
         for label in tqdm(labels, desc="Loading TUBerlin files"):
             if label not in downloaded_labels:
                 raise ValueError("Dataset missing or label has no samples.")
+            
+            i += 1
+            self.label_map[i] = label
 
             data_path = f"{self.out_dir}/svg/{label}"
             for file in os.listdir(data_path):
@@ -85,6 +92,7 @@ class TUBerlinDataset(BaseSketchDataset):
                 with open(svg_path, "r") as f:
                     svg_data = f.read()
                     data.append(svg_data)
+                    self.labels.append(i)
 
         super().__init__(data, **kwargs)
 
@@ -106,16 +114,24 @@ class QuickDrawDataset(BaseSketchDataset):
                     urllib.request.urlretrieve(url, output_path)
 
         data = []
+        
+        self.label_map = {}
+        self.labels = []
+        i = 0
 
         for label in tqdm(labels, desc="Loading QuickDraw files"):
             if not os.path.exists(f"{self.out_dir}/{label}.ndjson"):
                 raise ValueError("Dataset missing or label has no samples.")
+            
+            i += 1
+            self.label_map[i] = label
 
             with open(f"{self.out_dir}/{label}.ndjson") as f:
                 for line in f:
                     d = json.loads(line)
                     if d["recognized"]:
                         data.append(quickdraw_to_svg(d["drawing"]))
+                        self.labels.append(i)
 
         super().__init__(data, **kwargs)
 
@@ -169,10 +185,17 @@ class SketchyDataset(BaseSketchDataset):
         data = []
         labels_path = f"{self.out_dir}/sketches"
         downloaded_labels = set(os.listdir(labels_path))
+        
+        self.label_map = {}
+        self.labels = []
+        i = 0
 
         for label in tqdm(labels, desc="Loading Sketchy files"):
             if label not in downloaded_labels:
                 raise ValueError("Dataset missing or label has no samples.")
+            
+            i += 1
+            self.label_map[i] = label
 
             data_path = f"{self.out_dir}/sketches/{label}"
             for file in os.listdir(data_path):
@@ -182,6 +205,7 @@ class SketchyDataset(BaseSketchDataset):
                     with open(svg_path, "r") as f:
                         svg_data = f.read()
                         data.append(svg_data)
+                        self.labels.append(i)
 
         super().__init__(data, **kwargs)
 

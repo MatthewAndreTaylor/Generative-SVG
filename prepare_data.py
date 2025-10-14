@@ -343,6 +343,7 @@ def newtonRaphsonRootFind(bez, point, u):
 
 def stroke_to_bezier_single(svg_content, num_samples=20, maxError=1.0):
     paths, _ = svgstr2paths(svg_content)
+    view_box = parse_viewbox(svg_content)
     fitted_paths = []
 
     for path in paths:
@@ -358,7 +359,10 @@ def stroke_to_bezier_single(svg_content, num_samples=20, maxError=1.0):
         fitted_paths.extend([CubicBezier(b[0], b[1], b[2], b[3]) for b in beziers])
 
     fitted_paths = [Path(*fitted_paths)]
-    dwg = paths2Drawing(fitted_paths)
+    svg_attribs = {
+        "viewBox": f"{view_box[0]} {view_box[2]} {view_box[1]-view_box[0]} {view_box[3]-view_box[2]}"
+    }
+    dwg = paths2Drawing(fitted_paths, svg_attributes=svg_attribs)
     return dwg.tostring()
 
 
