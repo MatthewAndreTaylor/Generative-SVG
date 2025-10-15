@@ -73,7 +73,7 @@ class TUBerlinDataset(BaseSketchDataset):
         data = []
         labels_path = f"{self.out_dir}/svg"
         downloaded_labels = set(os.listdir(labels_path))
-        
+
         self.label_map = {}
         self.labels = []
         i = 0
@@ -81,7 +81,7 @@ class TUBerlinDataset(BaseSketchDataset):
         for label in tqdm(labels, desc="Loading TUBerlin files"):
             if label not in downloaded_labels:
                 raise ValueError("Dataset missing or label has no samples.")
-            
+
             i += 1
             self.label_map[i] = label
 
@@ -114,7 +114,7 @@ class QuickDrawDataset(BaseSketchDataset):
                     urllib.request.urlretrieve(url, output_path)
 
         data = []
-        
+
         self.label_map = {}
         self.labels = []
         i = 0
@@ -122,7 +122,7 @@ class QuickDrawDataset(BaseSketchDataset):
         for label in tqdm(labels, desc="Loading QuickDraw files"):
             if not os.path.exists(f"{self.out_dir}/{label}.ndjson"):
                 raise ValueError("Dataset missing or label has no samples.")
-            
+
             i += 1
             self.label_map[i] = label
 
@@ -185,7 +185,7 @@ class SketchyDataset(BaseSketchDataset):
         data = []
         labels_path = f"{self.out_dir}/sketches"
         downloaded_labels = set(os.listdir(labels_path))
-        
+
         self.label_map = {}
         self.labels = []
         i = 0
@@ -193,7 +193,7 @@ class SketchyDataset(BaseSketchDataset):
         for label in tqdm(labels, desc="Loading Sketchy files"):
             if label not in downloaded_labels:
                 raise ValueError("Dataset missing or label has no samples.")
-            
+
             i += 1
             self.label_map[i] = label
 
@@ -215,8 +215,6 @@ class SketchyDataset(BaseSketchDataset):
                         svg_data = remove_rect(svg_data)
                         data.append(svg_data)
                         self.labels.append(i)
-
-                        
 
         super().__init__(data, **kwargs)
 

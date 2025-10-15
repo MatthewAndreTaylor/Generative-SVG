@@ -1,4 +1,5 @@
 import sys, os
+
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
 from flask import Flask, render_template, request, jsonify
@@ -12,8 +13,8 @@ app = Flask(__name__)
 # Load sketch_features metadata
 with open("sketch_features.json", "r") as f:
     sketch_meta = json.load(f)
-    
-    
+
+
 with open("sketches.json", "r") as f:
     sketches = json.load(f)
 
@@ -26,7 +27,7 @@ last_item = list(sketches.values())[-1]
 last_index = max([int(s) for s in list(last_item.keys())], default=0)
 
 current_index = last_index + 1
-    
+
 
 print(f"Loaded {len(dataset)} sketches from {len(label_names)} categories.")
 
@@ -34,6 +35,7 @@ print(f"Loaded {len(dataset)} sketches from {len(label_names)} categories.")
 @app.route("/")
 def index():
     return render_template("index.html", labels=labels)
+
 
 @app.route("/current", methods=["GET"])
 def current_sketch():
@@ -45,11 +47,8 @@ def current_sketch():
     global current_index
     svg = dataset[current_index]
 
-    return jsonify(
-        label=label,
-        idx=current_index,
-        svg=svg
-    )
+    return jsonify(label=label, idx=current_index, svg=svg)
+
 
 @app.route("/update", methods=["POST"])
 def update():
@@ -62,17 +61,13 @@ def update():
     if label not in sketches:
         sketches[label] = {}
 
-    sketches[label][index] = {
-        "recognizable": recognizable,
-        "feature_complete": missing
-    }
+    sketches[label][index] = {"recognizable": recognizable, "feature_complete": missing}
 
     # Save back to JSON file
     with open("sketches.json", "w") as f:
         json.dump(sketches, f, indent=4)
 
     return jsonify(success=True, label=label)
-
 
 
 @app.route("/marked_sketches", methods=["GET"])
@@ -87,12 +82,14 @@ def marked_sketches():
     marked_sketches = []
 
     for key, value in marked.items():
-        marked_sketches.append({
-            "index": int(key),
-            "svg": dataset[int(key)],
-            "recognizable": value["recognizable"],
-            "feature_complete": value["feature_complete"]
-        })
+        marked_sketches.append(
+            {
+                "index": int(key),
+                "svg": dataset[int(key)],
+                "recognizable": value["recognizable"],
+                "feature_complete": value["feature_complete"],
+            }
+        )
 
     return jsonify(marked_sketches)
 

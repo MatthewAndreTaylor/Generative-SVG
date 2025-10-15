@@ -169,6 +169,7 @@ def add_viewbox(svg_content):
             )
     return svg_content
 
+
 def remove_rect(svg_content):
     svg_content = re.sub(r"<rect[^>]*/>", "", svg_content)
     svg_content = add_viewbox(svg_content)
