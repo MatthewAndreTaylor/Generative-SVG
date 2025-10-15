@@ -8,29 +8,88 @@
             font-family: sans-serif;
             background-color: #f0f0f0;
             text-align: center;
+            margin: 0;
+            padding: 0;
         }
+
         #sketch-container {
             margin-top: 20px;
         }
+
         .sketch {
             display: inline-block;
-            width: 150px;
+            width: 400px;
             background-color: white;
             margin: 10px;
             border-radius: 8px;
             padding: 5px;
             box-shadow: 0 2px 6px rgba(0,0,0,0.1);
         }
+
         .label {
             font-weight: bold;
             margin-bottom: 5px;
+        }
+
+        #marked-sketches {
+            margin: 30px auto;
+            width: 90%;
+            max-width: 1000px;
+            overflow-x: auto;
+            white-space: nowrap;
+            scroll-behavior: smooth;
+            background-color: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        #marked-sketches::-webkit-scrollbar {
+            height: 8px;
+        }
+        #marked-sketches::-webkit-scrollbar-thumb {
+            background: #bbb;
+            border-radius: 4px;
+        }
+
+        .marked-item {
+            display: inline-block;
+            width: 180px;
+            margin: 8px;
+            background-color: #fafafa;
+            border-radius: 8px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+            vertical-align: top;
+            padding: 5px;
+        }
+
+        .marked-item svg {
+            width: 160px;
+            height: 160px;
+        }
+
+        .marked-meta {
+            font-size: 12px;
+            margin-top: 4px;
+            color: #444;
         }
     </style>
 </head>
 <body>
     <h1>QuickDraw Sketch Labeler</h1>
-    <p>← = Missing Features | → = Not Missing | ↓ = Not Recognizable </p>
+
+    <!-- Input box for /set_index -->
+    <div>
+        <label for="sketch-index">Set Sketch Index:</label>
+        <input type="number" id="sketch-index" min="0" />
+        <button id="set-index-btn">Set Index</button>
+    </div>
+
     <div id="sketch-container"></div>
+    
+    <p>← = Missing Features | → = Not Missing | ↓ = Not Recognizable</p>
+
+    <h3>Marked Sketches</h3>
+    <div id="marked-sketches"></div>
 
     <script>
         const labels = {{ labels|tojson }};
@@ -39,9 +98,51 @@
 
         const container = document.getElementById("sketch-container");
 
-        async function fetchNextSketch() {
+        async function setSketchIndex(index) {
+            await fetch("/set_index", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({index: index})
+            });
+        }
+
+        document.getElementById("set-index-btn").addEventListener("click", async () => {
+            const index = parseInt(document.getElementById("sketch-index").value);
+            await setSketchIndex(index);
+            await fetchCurrentSketch();
+        });
+
+        // Fetch marked sketches
+        async function fetchMarkedSketches() {
             const label = labels[currentLabelIndex];
-            const response = await fetch(`/next?label=${label}`);
+            const response = await fetch(`/marked_sketches?label=${label}`);
+            const data = await response.json();
+
+            const markedContainer = document.getElementById("marked-sketches");
+            markedContainer.innerHTML = "";
+
+            data.forEach(sketch => {
+                const sketchDiv = document.createElement("div");
+                sketchDiv.className = "marked-item";
+                sketchDiv.innerHTML = `
+                    ${sketch.svg}
+                    <div class="marked-meta">#${sketch.index}</div>
+                    <div class="marked-meta">Matches Label: ${sketch.recognizable ? "✔️" : "❌"}</div>
+                    <div class="marked-meta">Feature complete: ${sketch.feature_complete ? "✔️" : "❌"}</div>
+                `;
+
+                sketchDiv.onclick = async () => {
+                    await setSketchIndex(sketch.index);
+                    await fetchCurrentSketch();
+                };
+
+                markedContainer.appendChild(sketchDiv);
+            });
+        }
+
+        async function fetchCurrentSketch() {
+            const label = labels[currentLabelIndex];
+            const response = await fetch(`/current?label=${label}`);
             const data = await response.json();
 
             if (data.error) {
@@ -49,18 +150,18 @@
                 return;
             }
 
-            currentSketchIndex = data.index;
+            currentSketchIndex = data.idx;
 
             container.innerHTML = `
                 <div class="sketch">
                     <div class="label">${data.label}</div>
                     ${data.svg}
-                    <div style="margin-top:10px;">(${data.index + 1}/${data.total})</div>
+                    <div style="margin-top:10px;">Index: ${data.idx}</div>
                 </div>
             `;
         }
 
-        async function sendUpdate(recognizable, missing) {
+        async function sendUpdate(recognizable, feature_complete) {
             const label = labels[currentLabelIndex];
             await fetch("/update", {
                 method: "POST",
@@ -69,38 +170,35 @@
                     label: label,
                     index: currentSketchIndex,
                     recognizable: recognizable,
-                    missing_features: missing
+                    feature_complete: feature_complete
                 })
             });
         }
 
         document.addEventListener("keydown", async (e) => {
             let recognizable = true;
-            let missing = false;
+            let feature_complete = false;
 
             if (e.key === "ArrowLeft") {
-                missing = true;
+                feature_complete = false;
             } else if (e.key === "ArrowRight") {
-                missing = false;
+                feature_complete = true;
             } else if (e.key === "ArrowDown") {
                 recognizable = false;
             } else {
                 return;
             }
 
-            await sendUpdate(recognizable, missing);
+            await sendUpdate(recognizable, feature_complete);
 
-            // Move to next label after finishing its sketches
-            const currentLabel = labels[currentLabelIndex];
-            const total = parseInt(document.querySelector(".sketch div:last-child").innerText.split("/")[1]);
-            if (currentSketchIndex + 1 >= total) {
-                currentLabelIndex = (currentLabelIndex + 1) % labels.length;
-            }
+            await setSketchIndex(currentSketchIndex+1);
 
-            await fetchNextSketch();
+            await fetchCurrentSketch();
+            await fetchMarkedSketches();
         });
 
-        fetchNextSketch();
+        fetchCurrentSketch();
+        fetchMarkedSketches();
     </script>
 </body>
 </html>

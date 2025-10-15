@@ -1,7 +1,7 @@
 {
     "cat": {
         "recognizable": true,
-        "missing_features": false,
+        "feature_complete": true,
         "features": {
             "eyes": true,
             "nose": true,
@@ -13,7 +13,7 @@
 
     "bicycle": {
         "recognizable": true,
-        "missing_features": false,
+        "feature_complete": true,
         "features": {
             "wheels": true,
             "frame": true,
@@ -24,7 +24,7 @@
 
     "dog": {
         "recognizable": true,
-        "missing_features": false,
+        "feature_complete": true,
         "features": {
             "eyes": true,
             "nose": true,
@@ -35,7 +35,7 @@
 
     "airplane": {
         "recognizable": true,
-        "missing_features": false,
+        "feature_complete": true,
         "features": {
             "wings": true,
             "tail": true,
