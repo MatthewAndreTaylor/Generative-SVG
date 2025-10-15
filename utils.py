@@ -64,7 +64,7 @@ class AbsolutePenPositionTokenizer:
         tokens.append(self.vocab["END"])
         return tokens
 
-    def decode(self, tokens, stroke_width=0.8):
+    def decode(self, tokens, stroke_width=0.6):
         svg_parts = [
             f'<svg viewBox="0 0 {self.bins} {self.bins}"><g stroke-width="{stroke_width}">'
         ]
@@ -123,7 +123,6 @@ class AbsoluteBezierPenPositionTokenizer:
 
 
     def encode(self, svg_content):
-        svg_content = stroke_to_bezier(svg_content, num_samples=20, maxError=10.0)
         paths, _ = svgstr2paths(svg_content)
         min_x, max_x, min_y, max_y = parse_viewbox(svg_content)
         quantize_point = make_quantizer(min_x, max_x, min_y, max_y, self.bins)
@@ -131,6 +130,8 @@ class AbsoluteBezierPenPositionTokenizer:
         tokens = [self.vocab["START"]]
         for path in paths:
             tokens.append(self.vocab["MOVE"])
+            q_start = quantize_point(path[0].start)
+            tokens.append(self.vocab[(int(q_start.real), int(q_start.imag))])
 
             # Line segments
             for seg in path:
@@ -138,13 +139,55 @@ class AbsoluteBezierPenPositionTokenizer:
                 q_ctrl2 = quantize_point(seg.control2)
                 q_end = quantize_point(seg.end)
 
-                tokens.append(self.vocab[(int(q_start.real), int(q_start.imag))])
                 tokens.append(self.vocab[(int(q_ctrl1.real), int(q_ctrl1.imag))])
                 tokens.append(self.vocab[(int(q_ctrl2.real), int(q_ctrl2.imag))])
                 tokens.append(self.vocab[(int(q_end.real), int(q_end.imag))])
 
         tokens.append(self.vocab["END"])
         return tokens
+    
+    def decode(self, tokens, stroke_width=0.6):
+        svg_parts = [
+            f'<svg viewBox="0 0 {self.bins} {self.bins}"><g stroke-width="{stroke_width}">'
+        ]
+        path_cmds = []
+        curve_cmds = []
+
+        for token in tokens:
+            item = self.inv_vocab[token]
+            if item == "START":
+                continue
+            elif item == "END":
+                break
+            elif item == "PAD":
+                continue
+            elif item == "MOVE":
+                if path_cmds:
+                    path_str = " ".join(path_cmds)
+                    svg_parts.append(
+                        f'<path d="{path_str}" stroke="black" fill="none"/>'
+                    )
+                    path_cmds = []
+                    curve_cmds = []
+            else:
+                x, y = item
+                if not path_cmds:
+                    path_cmds.append(f"M {x} {y}")
+                else:
+                    curve_cmds.append((x, y))
+
+                    if len(curve_cmds) == 3:
+                        c1, c2, end = curve_cmds
+                        path_cmds.append(f"C {c1[0]} {c1[1]}, {c2[0]} {c2[1]}, {end[0]} {end[1]}")
+                        curve_cmds = []
+
+        # Flush last path
+        if path_cmds:
+            path_str = " ".join(path_cmds)
+            svg_parts.append(f'<path d="{path_str}" stroke="black" fill="none"/>')
+
+        svg_parts.append("</g></svg>")
+        return "\n".join(svg_parts)
 
 
 def svg_stroke5(svg_content: str, bins=128, max_sequence_length: int = 200):

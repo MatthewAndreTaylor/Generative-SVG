@@ -169,9 +169,9 @@ def add_viewbox(svg_content):
             )
     return svg_content
 
-
 def remove_rect(svg_content):
     svg_content = re.sub(r"<rect[^>]*/>", "", svg_content)
+    svg_content = add_viewbox(svg_content)
     return svg_content
 
 
@@ -391,82 +391,6 @@ def stroke_to_bezier(svg_content, num_samples=20, maxError=1.0):
     return dwg.tostring()
 
 
-def fitCurve(points, maxError, top_n=None):
-    leftTangent = normalize(points[1] - points[0])
-    rightTangent = normalize(points[-2] - points[-1])
-    beziers_with_error = fitCubic(points, leftTangent, rightTangent, maxError)
-    
-    if top_n is not None:
-        # Sort by error (ascending) and keep only top_n
-        beziers_with_error.sort(key=lambda x: x[1])
-        beziers_with_error = beziers_with_error[:top_n]
-    
-    # Return only curves, not errors
-    return [b for b, e in beziers_with_error]
-
-def fitCubic(points, leftTangent, rightTangent, error):
-    if len(points) == 2:
-        dist = abs(points[0] - points[1]) / 3.0
-        bezCurve = [
-            points[0],
-            points[0] + leftTangent * dist,
-            points[1] + rightTangent * dist,
-            points[1],
-        ]
-        maxError, _ = computeMaxError(points, bezCurve, [0.0, 1.0])
-        return [(bezCurve, maxError)]
-
-    u = chordLengthParameterize(points)
-    bezCurve = generateBezier(points, u, leftTangent, rightTangent)
-    maxError, splitPoint = computeMaxError(points, bezCurve, u)
-
-    if maxError < error:
-        return [(bezCurve, maxError)]
-
-    if maxError < error**2:
-        for _ in range(20):
-            uPrime = reparameterize(bezCurve, points, u)
-            bezCurve = generateBezier(points, uPrime, leftTangent, rightTangent)
-            maxError, splitPoint = computeMaxError(points, bezCurve, uPrime)
-            if maxError < error:
-                return [(bezCurve, maxError)]
-            u = uPrime
-
-    beziers = []
-    centerTangent = normalize(points[splitPoint - 1] - points[splitPoint + 1])
-    beziers += fitCubic(points[: splitPoint + 1], leftTangent, centerTangent, error)
-    beziers += fitCubic(points[splitPoint:], -centerTangent, rightTangent, error)
-    return beziers
-
-
-def stroke_to_bezier_single_top(svg_content, num_samples=20, maxError=10.0, top_n=10):
-    paths, _ = svgstr2paths(svg_content)
-    view_box = parse_viewbox(svg_content)
-    fitted_paths = []
-
-    for path in paths:
-        cleaned_segments = [seg for seg in path if seg.start != seg.end]
-        if not cleaned_segments:
-            continue
-
-        cleaned_path = Path(*cleaned_segments)
-
-        # Sample path into points
-        points = [cleaned_path.point(i / (num_samples - 1)) for i in range(num_samples)]
-        
-        # Fit Bezier curves and optionally keep only top_n
-        beziers = fitCurve(points, maxError=maxError, top_n=top_n)
-        fitted_paths.extend([CubicBezier(b[0], b[1], b[2], b[3]) for b in beziers])
-
-    fitted_paths = [Path(*fitted_paths)]
-    svg_attribs = {
-        "viewBox": f"{view_box[0]} {view_box[2]} {view_box[1]} {view_box[3]}"
-    }
-    dwg = paths2Drawing(fitted_paths, svg_attributes=svg_attribs)
-    return dwg.tostring()
-
-
-
 def rdp(points, epsilon):
     if len(points) < 3:
         return points
@@ -504,14 +428,12 @@ def stroke_to_rdp(svg_content, epsilon=0.5):
     fitted_paths = []
 
     for path in paths:
+        if not path:
+            continue
         points = [(path[0].start.real, path[0].start.imag)]
         points.extend([(seg.end.real, seg.end.imag) for seg in path])
-        deduped_points = [points[0]]
-        for p in points[1:]:
-            if p != deduped_points[-1]:
-                deduped_points.append(p)
 
-        simplified = rdp(deduped_points, epsilon)
+        simplified = rdp(points, epsilon)
         if len(simplified) < 2:
             continue
 

@@ -9,7 +9,7 @@ from tqdm import tqdm
 from torch.utils.data import Dataset
 from typing import Callable, Optional
 
-from prepare_data import quickdraw_to_svg
+from prepare_data import quickdraw_to_svg, remove_rect
 
 
 # Transforming all the items in the dataset
@@ -197,15 +197,26 @@ class SketchyDataset(BaseSketchDataset):
             i += 1
             self.label_map[i] = label
 
+            invalid = ""
+            with open(f"{self.out_dir}/sketches/{label}/invalid.txt", "r") as f:
+                invalid = f.read()
+
             data_path = f"{self.out_dir}/sketches/{label}"
             for file in os.listdir(data_path):
                 if file.endswith(".svg"):
                     svg_path = f"{data_path}/{file}"
 
+                    stem = os.path.splitext(os.path.basename(file))[0]
+                    if stem in invalid:
+                        continue
+
                     with open(svg_path, "r") as f:
                         svg_data = f.read()
+                        svg_data = remove_rect(svg_data)
                         data.append(svg_data)
                         self.labels.append(i)
+
+                        
 
         super().__init__(data, **kwargs)
 
