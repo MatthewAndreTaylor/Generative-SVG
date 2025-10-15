@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>QuickDraw Labeling</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            background-color: #f0f0f0;
+            text-align: center;
+        }
+        #sketch-container {
+            margin-top: 20px;
+        }
+        .sketch {
+            display: inline-block;
+            width: 150px;
+            background-color: white;
+            margin: 10px;
+            border-radius: 8px;
+            padding: 5px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        }
+        .label {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>QuickDraw Sketch Labeler</h1>
+    <p>← = Missing Features | → = Not Missing | ↓ = Not Recognizable </p>
+    <div id="sketch-container"></div>
+
+    <script>
+        const labels = {{ labels|tojson }};
+        let currentLabelIndex = 0;
+        let currentSketchIndex = 0;
+
+        const container = document.getElementById("sketch-container");
+
+        async function fetchNextSketch() {
+            const label = labels[currentLabelIndex];
+            const response = await fetch(`/next?label=${label}`);
+            const data = await response.json();
+
+            if (data.error) {
+                container.innerHTML = `<p>${data.error}</p>`;
+                return;
+            }
+
+            currentSketchIndex = data.index;
+
+            container.innerHTML = `
+                <div class="sketch">
+                    <div class="label">${data.label}</div>
+                    ${data.svg}
+                    <div style="margin-top:10px;">(${data.index + 1}/${data.total})</div>
+                </div>
+            `;
+        }
+
+        async function sendUpdate(recognizable, missing) {
+            const label = labels[currentLabelIndex];
+            await fetch("/update", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({
+                    label: label,
+                    index: currentSketchIndex,
+                    recognizable: recognizable,
+                    missing_features: missing
+                })
+            });
+        }
+
+        document.addEventListener("keydown", async (e) => {
+            let recognizable = true;
+            let missing = false;
+
+            if (e.key === "ArrowLeft") {
+                missing = true;
+            } else if (e.key === "ArrowRight") {
+                missing = false;
+            } else if (e.key === "ArrowDown") {
+                recognizable = false;
+            } else {
+                return;
+            }
+
+            await sendUpdate(recognizable, missing);
+
+            // Move to next label after finishing its sketches
+            const currentLabel = labels[currentLabelIndex];
+            const total = parseInt(document.querySelector(".sketch div:last-child").innerText.split("/")[1]);
+            if (currentSketchIndex + 1 >= total) {
+                currentLabelIndex = (currentLabelIndex + 1) % labels.length;
+            }
+
+            await fetchNextSketch();
+        });
+
+        fetchNextSketch();
+    </script>
+</body>
+</html>
