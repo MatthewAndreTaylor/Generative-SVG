@@ -173,6 +173,16 @@ def add_viewbox(svg_content):
 def remove_rect(svg_content):
     svg_content = re.sub(r"<rect[^>]*/>", "", svg_content)
     svg_content = add_viewbox(svg_content)
+    
+    # Remove any paths that are invisible (white stroke) and the next path tag
+    # This solves some issues with Sketchy SVGs that have invisible paths (not all are found)
+    svg_content = re.sub(
+        r'<path\b[^>]*\bstroke\s*=\s*(["\'])(?:#fff|#ffffff|white)\1[^>]*\/?>\s*<path\b[^>]*\/?>',
+        '',
+        svg_content,
+        flags=re.IGNORECASE
+    )
+    
     return svg_content
 
 
