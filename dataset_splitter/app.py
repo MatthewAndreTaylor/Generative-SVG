@@ -1,12 +1,12 @@
 import sys, os
-
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
 from flask import Flask, render_template, request, jsonify
 import json
+import pandas as pd
 from dataset import QuickDrawDataset
 
-# pip install Flask>=3.0.0
+# pip install Flask>=3.0.0 pandas>=2.0.0
 
 app = Flask(__name__)
 
@@ -14,22 +14,33 @@ app = Flask(__name__)
 with open("sketch_features.json", "r") as f:
     sketch_meta = json.load(f)
 
-
-with open("sketches.json", "r") as f:
-    sketches = json.load(f)
-
+# Prepare dataset
 label_names = list(sketch_meta.keys())
 dataset = QuickDrawDataset(label_names, download=True)
 labels = [dataset.label_map[data_label] for data_label in dataset.labels]
 
-
-last_item = list(sketches.values())[-1]
-last_index = max([int(s) for s in list(last_item.keys())], default=0)
-
-current_index = last_index + 1
-
-
 print(f"Loaded {len(dataset)} sketches from {len(label_names)} categories.")
+
+CSV_PATH = f"{dataset.__class__.__name__}_marked.csv"
+
+# Load or initialize CSV
+if os.path.exists(CSV_PATH):
+    df = pd.read_csv(CSV_PATH)
+else:
+    df = pd.DataFrame(
+        columns=[
+            "label_name",
+            "label_id",
+            "index",
+            "recognizable",
+            "feature_complete",
+        ]
+    )
+    df.to_csv(CSV_PATH, index=False)
+
+# Determine last index used
+last_index = df["index"].max() if not df.empty else -1
+current_index = int(last_index) + 1
 
 
 @app.route("/")
@@ -52,42 +63,47 @@ def current_sketch():
 
 @app.route("/update", methods=["POST"])
 def update():
+    global df
+
     data = request.json
-    index = data["index"]
     label = data["label"]
-    recognizable = data["recognizable"]
-    missing = data["feature_complete"]
+    recognizable = int(data["recognizable"])
+    feature_complete = int(data["feature_complete"])
+    index = int(data["index"])
+    label_id = dataset.labels[index]
 
-    if label not in sketches:
-        sketches[label] = {}
+    # Remove old record for this index + label if exists
+    df = df[~((df["label_name"] == label) & (df["index"] == index))]
 
-    sketches[label][index] = {"recognizable": recognizable, "feature_complete": missing}
+    # Append new record
+    new_entry = {
+        "label_name": label,
+        "label_id": label_id,
+        "index": index,
+        "recognizable": recognizable,
+        "feature_complete": feature_complete,
+    }
 
-    # Save back to JSON file
-    with open("sketches.json", "w") as f:
-        json.dump(sketches, f, indent=4)
+    df = pd.concat([df, pd.DataFrame([new_entry])], ignore_index=True)
+    df.to_csv(CSV_PATH, index=False)
 
     return jsonify(success=True, label=label)
 
 
 @app.route("/marked_sketches", methods=["GET"])
 def marked_sketches():
-
     label = request.args.get("label")
 
-    if label not in sketches:
-        return jsonify(error=f"Unknown label: {label}"), 400
-
-    marked = sketches[label]
+    subset = df[df["label_name"] == label]
     marked_sketches = []
 
-    for key, value in marked.items():
+    for _, row in subset.iterrows():
         marked_sketches.append(
             {
-                "index": int(key),
-                "svg": dataset[int(key)],
-                "recognizable": value["recognizable"],
-                "feature_complete": value["feature_complete"],
+                "index": int(row["index"]),
+                "svg": dataset[int(row["index"])],
+                "recognizable": int(row["recognizable"]),
+                "feature_complete": int(row["feature_complete"]),
             }
         )
 
