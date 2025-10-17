@@ -91,7 +91,7 @@ def quantize_paths(paths, bins, svg_content):
     return quantized_paths
 
 
-def clean_svg(svg_content):
+def clean_svg(svg_content, stroke_width=0.3):
     # Clean up XML declaration
     svg_text = re.sub(r"<\?xml[^>]+\?>", "", svg_content).strip()
 
@@ -127,7 +127,7 @@ def clean_svg(svg_content):
 
     # Add a <g> element after <svg ... >
     # TODO: this should be dynamic based on the original stroke width * some factor
-    svg_text = re.sub(r"(<svg[^>]*>)", r'\1<g stroke-width="1.0">', svg_text)
+    svg_text = re.sub(r"(<svg[^>]*>)", rf'\1<g stroke-width="{stroke_width}">', svg_text)
     svg_text = svg_text.replace("</svg>", "</g></svg>")
 
     # remove all whitespace between elements
