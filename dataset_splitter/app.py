@@ -4,7 +4,7 @@ sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from flask import Flask, render_template, request, jsonify
 import json
 import pandas as pd
-from dataset import QuickDrawDataset
+from dataset import QuickDrawDataset, TUBerlinDataset, SketchyDataset
 
 # pip install Flask>=3.0.0 pandas>=2.0.0
 
@@ -16,12 +16,15 @@ with open("sketch_features.json", "r") as f:
 
 # Prepare dataset
 label_names = list(sketch_meta.keys())
+
 dataset = QuickDrawDataset(label_names, download=True)
+# dataset = SketchyDataset(label_names, download=True)
+
 labels = [dataset.label_map[data_label] for data_label in dataset.labels]
 
 print(f"Loaded {len(dataset)} sketches from {len(label_names)} categories.")
 
-CSV_PATH = f"{dataset.__class__.__name__}_marked.csv"
+CSV_PATH = f"{dataset.__class__.__name__.lower()}_marked.csv"
 
 # Load or initialize CSV
 if os.path.exists(CSV_PATH):

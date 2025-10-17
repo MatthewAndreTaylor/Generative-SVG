@@ -9,6 +9,7 @@ from tqdm import tqdm
 from torch.utils.data import Dataset
 from typing import Callable, Optional
 
+from svgpathtools import svgstr2paths
 from prepare_data import quickdraw_to_svg, remove_rect
 
 
@@ -215,6 +216,13 @@ class SketchyDataset(BaseSketchDataset):
                         svg_data = remove_rect(svg_data)
                         data.append(svg_data)
                         self.labels.append(i)
+                        # Validate SVG
+                        try:
+                            svgstr2paths(svg_data)
+                        except Exception as e:
+                            data.pop()
+                            self.labels.pop()
+                        
 
         super().__init__(data, **kwargs)
 
