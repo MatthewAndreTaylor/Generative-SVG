@@ -77,13 +77,11 @@ class TUBerlinDataset(BaseSketchDataset):
 
         self.label_map = {}
         self.labels = []
-        i = 0
 
-        for label in tqdm(labels, desc="Loading TUBerlin files"):
+        for i, label in tqdm(enumerate(labels), desc="Loading TUBerlin files"):
             if label not in downloaded_labels:
                 raise ValueError("Dataset missing or label has no samples.")
 
-            i += 1
             self.label_map[i] = label
 
             data_path = f"{self.out_dir}/svg/{label}"
@@ -104,8 +102,6 @@ class QuickDrawDataset(BaseSketchDataset):
     out_dir = "data/quickdraw"
 
     def __init__(self, labels, download: bool = False, **kwargs):
-        self.labels = labels
-
         if download:
             files = self.get_buckets(labels)
             for name, url in tqdm(files, desc="Downloading QuickDraw files"):
@@ -115,16 +111,13 @@ class QuickDrawDataset(BaseSketchDataset):
                     urllib.request.urlretrieve(url, output_path)
 
         data = []
-
         self.label_map = {}
         self.labels = []
-        i = 0
 
-        for label in tqdm(labels, desc="Loading QuickDraw files"):
+        for i, label in tqdm(enumerate(labels), desc="Loading QuickDraw files"):
             if not os.path.exists(f"{self.out_dir}/{label}.ndjson"):
                 raise ValueError("Dataset missing or label has no samples.")
 
-            i += 1
             self.label_map[i] = label
 
             with open(f"{self.out_dir}/{label}.ndjson") as f:
@@ -189,13 +182,11 @@ class SketchyDataset(BaseSketchDataset):
 
         self.label_map = {}
         self.labels = []
-        i = 0
 
-        for label in tqdm(labels, desc="Loading Sketchy files"):
+        for i, label in tqdm(enumerate(labels), desc="Loading Sketchy files"):
             if label not in downloaded_labels:
                 raise ValueError("Dataset missing or label has no samples.")
 
-            i += 1
             self.label_map[i] = label
 
             invalid = ""
@@ -222,7 +213,6 @@ class SketchyDataset(BaseSketchDataset):
                         except Exception as e:
                             data.pop()
                             self.labels.pop()
-                        
 
         super().__init__(data, **kwargs)
 
