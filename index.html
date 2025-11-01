@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Simple Sketch App with RDP Simplification</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="https://fonts.googleapis.com/css?family=Roboto+Mono:300,400" rel="stylesheet">
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Roboto Mono', monospace;
+      overflow: hidden;
+    }
+
+    #ui {
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      z-index: 10;
+    }
+
+    button {
+      font-family: 'Roboto Mono', monospace;
+      border: none;
+      background: #eee;
+      color: #333;
+      font-size: 16px;
+      margin-right: 10px;
+      padding: 6px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    button:hover {
+      background: #ddd;
+    }
+
+    canvas {
+      display: block;
+    }
+  </style>
+
+  <script src="https://cdn.jsdelivr.net/npm/p5@1.9.0/lib/p5.min.js"></script>
+</head>
+<body>
+  <div id="ui">
+    <button id="clear">Clear</button>
+  </div>
+
+  <script>
+    let lines = [];
+    let currentLine = [];
+    let isDrawing = false;
+    let tolerance = 2.0; // RDP simplification tolerance (higher = fewer points)
+
+    let showKeyPoints = true;
+
+    function setup() {
+      createCanvas(windowWidth, windowHeight);
+      background(255);
+      stroke(0);
+      strokeWeight(2);
+      noFill();
+
+      document.getElementById("clear").onclick = () => {
+        lines = [];
+        background(255);
+      };
+    }
+
+    function draw() {
+      background(255);
+
+      // draw previous lines
+      for (let line of lines) {
+        drawSmoothLine(line);
+        drawKeyPoints(line);
+      }
+
+      // draw the line currently being drawn
+      if (isDrawing) {
+        drawSmoothLine(currentLine);
+        drawKeyPoints(currentLine);
+      }
+    }
+
+    function mousePressed() {
+      isDrawing = true;
+      currentLine = [];
+      currentLine.push(createVector(mouseX, mouseY));
+    }
+
+    function mouseDragged() {
+      if (isDrawing) {
+        let prev = currentLine[currentLine.length - 1];
+        let curr = createVector(mouseX, mouseY);
+
+        if (p5.Vector.dist(prev, curr) > 1) {
+          currentLine.push(curr);
+        }
+      }
+    }
+
+    function mouseReleased() {
+      if (isDrawing) {
+        isDrawing = false;
+        const simplified = rdpSimplify(currentLine, tolerance);
+        lines.push(simplified);
+      }
+    }
+
+    // Ramer–Douglas–Peucker algorithm
+    function rdpSimplify(points, epsilon) {
+      if (points.length < 3) return points;
+
+      // Find the point farthest from the line (start–end)
+      let dmax = 0;
+      let index = 0;
+      const start = points[0];
+      const end = points[points.length - 1];
+
+      for (let i = 1; i < points.length - 1; i++) {
+        const d = perpendicularDistance(points[i], start, end);
+        if (d > dmax) {
+          index = i;
+          dmax = d;
+        }
+      }
+
+      // If max distance is greater than epsilon, recursively simplify
+      if (dmax > epsilon) {
+        const left = rdpSimplify(points.slice(0, index + 1), epsilon);
+        const right = rdpSimplify(points.slice(index), epsilon);
+        return left.slice(0, -1).concat(right);
+      } else {
+        // Otherwise return just the endpoints
+        return [start, end];
+      }
+    }
+
+    // Helper: perpendicular distance from point to line segment
+    function perpendicularDistance(p, start, end) {
+      const num = abs(
+        (end.y - start.y) * p.x -
+        (end.x - start.x) * p.y +
+        end.x * start.y -
+        end.y * start.x
+      );
+      const den = dist(start.x, start.y, end.x, end.y);
+      return den === 0 ? 0 : num / den;
+    }
+
+    function drawSmoothLine(points) {
+      if (points.length < 2) return;
+      stroke(0);
+      strokeWeight(2);
+      noFill();
+      beginShape();
+      for (let p of points) {
+        vertex(p.x, p.y);
+      }
+      endShape();
+    }
+
+    function drawKeyPoints(points) {
+      if (!showKeyPoints) return;
+
+      noStroke();
+      fill(255, 0, 0);
+      for (let p of points) {
+        circle(p.x, p.y, 6);
+      }
+    }
+
+    function windowResized() {
+      resizeCanvas(windowWidth, windowHeight);
+      background(255);
+    }
+  </script>
+</body>
+</html>
