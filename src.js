@@ -24,8 +24,7 @@ function setup() {
   document.getElementById("clear").onclick = () => {
     lines = [];
     background(255);
-    document.getElementById("svg-output").innerHTML =
-      "(draw something to see SVG)";
+    document.getElementById("svg-output").innerHTML = "(draw something to see SVG)";
   };
 }
 
@@ -102,10 +101,7 @@ function rdpSimplify(points, epsilon) {
 
 function perpendicularDistance(p, start, end) {
   const num = Math.abs(
-    (end.y - start.y) * p.x -
-      (end.x - start.x) * p.y +
-      end.x * start.y -
-      end.y * start.x
+    (end.y - start.y) * p.x - (end.x - start.x) * p.y + end.x * start.y - end.y * start.x
   );
   const den = dist(start.x, start.y, end.x, end.y);
   return den === 0 ? 0 : num / den;
@@ -210,11 +206,15 @@ class DeltaPenPositionTokenizer {
 
   decode(tokens, strokeWidth = 0.4) {
     const svgParts = [
-      `<svg viewBox="0 0 ${this.bins} ${this.bins}" xmlns="http://www.w3.org/2000/svg"><g stroke-width="${strokeWidth}">`,
+      `<svg viewBox="0 0 ${this.bins} ${this.bins}" xmlns="http://www.w3.org/2000/svg">
+      <g stroke-width="${strokeWidth}">`
     ];
+
     let pathCmds = [];
     let x = 0;
     let y = 0;
+    let pathIndex = 0;
+    let delayStep = 0.2;
 
     for (let token of tokens) {
       const item = this.invVocab.get(token);
@@ -223,10 +223,13 @@ class DeltaPenPositionTokenizer {
 
       if (item === "MOVE") {
         if (pathCmds.length) {
+          // add the path with increasing animation delay
           svgParts.push(
-            `<path d="${pathCmds.join(" ")}" stroke="black" fill="none"/>`
+            `<path d="${pathCmds.join(" ")}" stroke="black" fill="none"
+                 style="animation-delay: ${pathIndex * delayStep}s;" />`
           );
           pathCmds = [];
+          pathIndex++;
         }
         continue;
       }
@@ -239,10 +242,13 @@ class DeltaPenPositionTokenizer {
       else pathCmds.push(`L ${x} ${y}`);
     }
 
-    if (pathCmds.length)
+    // Add final path if any
+    if (pathCmds.length) {
       svgParts.push(
-        `<path d="${pathCmds.join(" ")}" stroke="black" fill="none"/>`
+        `<path d="${pathCmds.join(" ")}" stroke="black" fill="none"
+             style="animation-delay: ${pathIndex * delayStep}s;" />`
       );
+    }
 
     svgParts.push("</g></svg>");
     return svgParts.join("\n");
