@@ -220,7 +220,7 @@ class SketchyDataset(BaseSketchDataset):
 class SketchDataset(Dataset):
     def __init__(
         self,
-        dataset,
+        dataset: BaseSketchDataset,
         tokenizer,
         max_len=200,
     ):
@@ -229,6 +229,8 @@ class SketchDataset(Dataset):
         self.max_len = max_len
         self.pad_id = tokenizer.vocab["PAD"]
         cache_modified = False
+
+        self.parent_dataset = dataset
 
         # Try to load some labeled data from cache
         cache_file = os.path.join(
@@ -241,7 +243,7 @@ class SketchDataset(Dataset):
         else:
             tokenized_data_cache = defaultdict(list)
 
-        for label_name in dataset.label_names:
+        for label_name in tqdm(dataset.label_names, desc="Tokenizing dataset"):
             if label_name in tokenized_data_cache and tokenized_data_cache[label_name]:
                 tokenized = tokenized_data_cache[label_name]
                 self.seqs.extend(tokenized)
@@ -250,10 +252,12 @@ class SketchDataset(Dataset):
             cache_modified = True
             tokenized = []
             cached = dataset.data_cache[label_name]
-            for svg in tqdm(cached, desc=f"Tokenizing {label_name} sketches"):
+            for svg in cached:
                 tokens = tokenizer.encode(svg)[:max_len]
                 tokens = tokens + [self.pad_id] * (max_len - len(tokens))
                 tokenized.append(tokens)
+
+                # Another option is to skip samples that are too long
 
             tokenized_data_cache[label_name] = tokenized
             self.seqs.extend(tokenized)
@@ -265,7 +269,7 @@ class SketchDataset(Dataset):
         seq = self.seqs[idx]
         input_ids = torch.tensor(seq[:-1])
         target_ids = torch.tensor(seq[1:])
-        return input_ids, target_ids
+        return input_ids, target_ids, self.parent_dataset.labels[idx]
 
     def __len__(self):
-        return len(self.data)
+        return len(self.seqs)
