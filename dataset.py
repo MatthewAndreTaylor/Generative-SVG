@@ -170,16 +170,10 @@ class SketchyDataset(BaseSketchDataset):
     # https://sketchy.eye.gatech.edu
     # https://drive.google.com/file/d/1Qr8HhjRuGqgDONHigGszyHG_awCstivo/view
     bucket_url = "https://drive.usercontent.google.com/download?authuser=0&export=download&id=1Qr8HhjRuGqgDONHigGszyHG_awCstivo&confirm=t&uuid=8cbdb41b-3dd4-41d3-8882-19056058bf2b&at=AN8xHorrKtrtyloclKhSah7qRz9L%3A1758498381130"
+    invalid_labels = {}
 
     def __init__(self, label_names, download: bool = False):
-        self.invalid_labels = {}
-        out_dir = "data/sketchy"
-
-        for label_name in label_names:
-            with open(f"{out_dir}/sketches/{label_name}/invalid.txt", "r") as f:
-                self.invalid_labels[label_name] = f.read()
-
-        super().__init__(label_names, out_dir=out_dir, download=download)
+        super().__init__(label_names, out_dir="data/sketchy", download=download)
 
     def download_data(self):
         if not os.path.exists("sketchy.7z"):
@@ -198,6 +192,9 @@ class SketchyDataset(BaseSketchDataset):
                 )
 
     def get_label_files(self, label):
+        with open(f"{self.out_dir}/sketches/{label}/invalid.txt", "r") as f:
+            self.invalid_labels[label] = f.read()
+
         path = os.path.join(self.out_dir, "sketches", label)
         if not os.path.exists(path):
             raise ValueError("Dataset missing or label has no samples.")

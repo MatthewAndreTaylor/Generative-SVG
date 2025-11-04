@@ -4,18 +4,15 @@ from prepare_data import parse_viewbox, make_quantizer
 
 # We propose two novel representations for SVG data:
 
-## Stroke-based representation: each row is (dx, dy, flag)
+## Absolute (Point-based) representation: each row is (x, y, flag)
+# where x, y are absolute coordinates, and flag is 0 for "move" and 1 for "line".
+
+## Delta (Stroke-based) representation: each row is (dx, dy, flag)
 # where dx, dy are the offsets from the previous point,
 # and flag is 0 for a "move" (start of new path) and 1 for a "line" (continuation of path).
 
-## Point-based representation: each row is (x, y, flag)
-# where x, y are absolute coordinates, and flag is 0 for "move" and 1 for "line".
-
-# Instead of using clustering what if we used a very large dictionary for perfect reconstruction?
-
 
 class AbsolutePenPositionTokenizer:
-
     def __init__(self, bins=128):
         self.bins = bins
         self.vocab = {}
