@@ -127,7 +127,9 @@ def clean_svg(svg_content, stroke_width=0.3):
 
     # Add a <g> element after <svg ... >
     # TODO: this should be dynamic based on the original stroke width * some factor
-    svg_text = re.sub(r"(<svg[^>]*>)", rf'\1<g stroke-width="{stroke_width}">', svg_text)
+    svg_text = re.sub(
+        r"(<svg[^>]*>)", rf'\1<g stroke-width="{stroke_width}">', svg_text
+    )
     svg_text = svg_text.replace("</svg>", "</g></svg>")
 
     # remove all whitespace between elements
@@ -138,14 +140,14 @@ def clean_svg(svg_content, stroke_width=0.3):
     return svg_text
 
 
-def convert_and_quantize_svg(svg_content, bins: int = 128):
+def convert_and_quantize_svg(svg_content, bins: int = 128, stroke_width=0.3):
     paths, _ = svgstr2paths(svg_content)
     quantized_paths = quantize_paths(paths, bins, svg_content)
 
     # Use paths2Drawing to get Drawing object, then write to string
     dwg = paths2Drawing(quantized_paths)
     svg_content = dwg.tostring()
-    output = clean_svg(svg_content)
+    output = clean_svg(svg_content, stroke_width=stroke_width)
     return output
 
 
@@ -173,16 +175,16 @@ def add_viewbox(svg_content):
 def remove_rect(svg_content):
     svg_content = re.sub(r"<rect[^>]*/>", "", svg_content)
     svg_content = add_viewbox(svg_content)
-    
+
     # Remove any paths that are invisible (white stroke) and the next path tag
     # This solves some issues with Sketchy SVGs that have invisible paths (not all are found)
     svg_content = re.sub(
         r'<path\b[^>]*\bstroke\s*=\s*(["\'])(?:#fff|#ffffff|white)\1[^>]*\/?>\s*<path\b[^>]*\/?>',
-        '',
+        "",
         svg_content,
-        flags=re.IGNORECASE
+        flags=re.IGNORECASE,
     )
-    
+
     return svg_content
 
 
@@ -312,9 +314,9 @@ def generateBezier(points, parameters, leftTangent, rightTangent):
         alpha_l = alpha_r = 0.0
 
     segLength = abs(points[0] - points[-1])
-    epsilon = 1.0e-6 * segLength
+    eps = 1.0e-6 * segLength
 
-    if alpha_l < epsilon or alpha_r < epsilon:
+    if alpha_l < eps or alpha_r < eps:
         bezCurve[1] = bezCurve[0] + leftTangent * (segLength / 3.0)
         bezCurve[2] = bezCurve[3] + rightTangent * (segLength / 3.0)
     else:

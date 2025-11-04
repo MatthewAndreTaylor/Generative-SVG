@@ -18,7 +18,7 @@ from prepare_data import parse_viewbox, make_quantizer, stroke_to_bezier
 
 class AbsolutePenPositionTokenizer:
 
-    def __init__(self, bins=128, additional_tokens=[]):
+    def __init__(self, bins=128):
         self.bins = bins
         self.vocab = {}
         self.inv_vocab = {}
@@ -35,36 +35,33 @@ class AbsolutePenPositionTokenizer:
             self.inv_vocab[idx] = pen_token
             idx += 1
 
-        for token in additional_tokens:
-            self.vocab[token] = idx
-            self.inv_vocab[idx] = token
-            idx += 1
-
     def encode(self, svg_content):
+        """
+        Encode SVG content into a sequence of tokens.
+        """
         paths, _ = svgstr2paths(svg_content)
         min_x, max_x, min_y, max_y = parse_viewbox(svg_content)
         quantize_point = make_quantizer(min_x, max_x, min_y, max_y, self.bins)
 
         tokens = [self.vocab["START"]]
+        move_token = self.vocab["MOVE"]
+
         for path in paths:
             # Move command
-            start_quantized = quantize_point(path[0].start)
-            tokens.append(self.vocab["MOVE"])
-            tokens.append(
-                self.vocab[(int(start_quantized.real), int(start_quantized.imag))]
-            )
+            start = quantize_point(path[0].start)
+            tokens.append(move_token)
+            tokens.append(self.vocab[(int(start.real), int(start.imag))])
 
             # Line segments
             for seg in path:
-                end_quantized = quantize_point(seg.end)
-                tokens.append(
-                    self.vocab[(int(end_quantized.real), int(end_quantized.imag))]
-                )
+                end = quantize_point(seg.end)
+                tokens.append(self.vocab[(int(end.real), int(end.imag))])
 
         tokens.append(self.vocab["END"])
         return tokens
 
     def decode(self, tokens, stroke_width=0.4):
+        """Decode a sequence of tokens into SVG content."""
         svg_parts = [
             f'<svg viewBox="0 0 {self.bins} {self.bins}"><g stroke-width="{stroke_width}">'
         ]
@@ -122,33 +119,37 @@ class DeltaPenPositionTokenizer:
             idx += 1
 
     def encode(self, svg_content):
-        paths, _ = svgstr2paths(svg_content)
+        """
+        Encode SVG content into a sequence of tokens using delta positions.
+        """
         min_x, max_x, min_y, max_y = parse_viewbox(svg_content)
         quantize_point = make_quantizer(min_x, max_x, min_y, max_y, self.bins)
+        paths, _ = svgstr2paths(svg_content)
         prev = None
+        move_token = self.vocab["MOVE"]
 
         tokens = [self.vocab["START"]]
         for path in paths:
-            tokens.append(self.vocab["MOVE"])
+            tokens.append(move_token)
             q_start = quantize_point(path[0].start)
             dx = q_start.real - (prev.real if prev else 0)
             dy = q_start.imag - (prev.imag if prev else 0)
             prev = q_start
-
             tokens.append(self.vocab[(int(dx), int(dy))])
 
             # Line segments
             for seg in path:
-                end_quantized = quantize_point(seg.end)
-                dx = end_quantized.real - prev.real
-                dy = end_quantized.imag - prev.imag
+                end = quantize_point(seg.end)
+                dx = end.real - prev.real
+                dy = end.imag - prev.imag
                 tokens.append(self.vocab[(int(dx), int(dy))])
-                prev = end_quantized
+                prev = end
 
         tokens.append(self.vocab["END"])
         return tokens
 
     def decode(self, tokens, stroke_width=0.4):
+        """Decode a sequence of tokens into SVG content."""
         svg_parts = [
             f'<svg viewBox="0 0 {self.bins} {self.bins}"><g stroke-width="{stroke_width}">'
         ]
@@ -209,6 +210,9 @@ class AbsoluteBezierPenPositionTokenizer:
             idx += 1
 
     def encode(self, svg_content):
+        """
+        Encode SVG content into a sequence of tokens using Bezier curves.
+        """
         paths, _ = svgstr2paths(svg_content)
         min_x, max_x, min_y, max_y = parse_viewbox(svg_content)
         quantize_point = make_quantizer(min_x, max_x, min_y, max_y, self.bins)
@@ -233,6 +237,7 @@ class AbsoluteBezierPenPositionTokenizer:
         return tokens
 
     def decode(self, tokens, stroke_width=0.4):
+        """Decode a sequence of tokens into SVG content."""
         svg_parts = [
             f'<svg viewBox="0 0 {self.bins} {self.bins}"><g stroke-width="{stroke_width}">'
         ]
