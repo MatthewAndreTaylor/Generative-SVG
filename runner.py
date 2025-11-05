@@ -64,11 +64,18 @@ def train_model(
         tokenizer is not None
     ), "Tokenizer must be provided for logging target distributions."
 
-    model = model.to(device)
     optimizer = torch.optim.AdamW(model.parameters(), lr=lr)
     criterion = nn.CrossEntropyLoss()
     writer = SummaryWriter(log_dir=log_dir)
-    writer.add_graph(model, torch.zeros((1, model.max_len), dtype=torch.long).to(device))
+
+    input_ids, _, _ = next(iter(train_loader))
+    input_ids = input_ids.to(device)
+
+    # if hparams.get("use_jit"):
+    #     model = torch.jit.script(model, example_inputs={model: input_ids})
+
+    writer.add_graph(model, input_ids)
+
     writer.add_hparams(hparams, {})
     best_val_loss = float("inf")
 
@@ -238,11 +245,12 @@ def train_model_cond(
         tokenizer is not None
     ), "Tokenizer must be provided for logging target distributions."
 
-    model = model.to(device)
     optimizer = torch.optim.AdamW(model.parameters(), lr=lr)
-    criterion = nn.CrossEntropyLoss(ignore_index=0)
+    criterion = nn.CrossEntropyLoss()
     writer = SummaryWriter(log_dir=log_dir)
-    # TODO add graph
+
+    input_ids, _, class_labels = next(iter(train_loader))
+    writer.add_graph(model, (input_ids.to(device), class_labels.to(device)))
     writer.add_hparams(hparams, {})
     best_val_loss = float("inf")
 

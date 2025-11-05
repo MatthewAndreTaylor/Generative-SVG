@@ -1,0 +1,27 @@
+[dataset]
+class = "QuickDrawDataset"
+label_names = ["cat"]
+download = true
+
+[splits]
+train = 0.8
+val = 0.1
+test = 0.1
+
+[tokenizer]
+class = "DeltaPenPositionTokenizer"
+bins = 32
+
+[model]
+class = "SketchTransformer"
+d_model = 256
+nhead = 8
+num_layers = 6
+max_len = 200
+
+[training]
+batch_size = 32
+num_epochs = 20
+learning_rate = 1e-4
+log_dir = "logs/sketch_transformer_example1"
+resume = false
