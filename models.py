@@ -12,6 +12,8 @@ class SketchTransformer(nn.Module):
         super().__init__()
         self.vocab_size = vocab_size
         self.d_model = d_model
+        self.nhead = nhead
+        self.num_layers = num_layers
         self.max_len = max_len
 
         self.embed = nn.Embedding(vocab_size, d_model)
@@ -47,7 +49,10 @@ class SketchTransformerConditional(nn.Module):
         super().__init__()
         self.vocab_size = vocab_size
         self.d_model = d_model
+        self.nhead = nhead
+        self.num_layers = num_layers
         self.max_len = max_len
+        self.num_classes = num_classes
 
         self.embed = nn.Embedding(vocab_size, d_model)
         self.pos_embed = nn.Embedding(max_len, d_model)
