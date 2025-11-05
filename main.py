@@ -159,7 +159,7 @@ def main(config_path: str):
 
 if __name__ == "__main__":
     parser = ArgumentParser()
-    parser.add_argument("--config", type=str, default="config.yaml")
+    parser.add_argument("--config", type=str, default="configs/example_0.toml")
     args = parser.parse_args()
 
     if os.path.exists(args.config):
