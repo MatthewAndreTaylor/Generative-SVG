@@ -69,7 +69,7 @@ batch_size = params["batch_size"]
 train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, pin_memory=True)
 val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False, pin_memory=True)
 
-
+# Initialize model
 model = params["model"]["class"]( **params["model"]["params"], vocab_size=len(tokenizer.vocab))
 
 hparams = {
@@ -80,11 +80,12 @@ hparams = {
     "max_len": model.max_len,
     "tokenizer_class": tokenizer.__class__.__name__,
     "tokenizer_bins": tokenizer.bins,
+    "learning_rate": params["training"]["learning_rate"],
 }
 
 start_epoch = 0
 
-# resume from checkpoint if available
+# Resume from checkpoint if available
 checkpoint_path_prefix = f"{model.__class__.__name__}_{hparams.get('tokenizer_class')}-q{hparams.get('tokenizer_bins')}_checkpoint"
 checkpoints = []
 
@@ -101,7 +102,7 @@ if checkpoints and params["training"]["resume"]:
     print(f"Resumed from epoch {start_epoch}")
 
 
-
+# Train model (conditional or not)
 if params["model"]["class"] == SketchTransformer:
     train_model(
         model,
