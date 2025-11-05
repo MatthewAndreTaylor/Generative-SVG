@@ -18,31 +18,32 @@ example0 = {
     "dataset": {
         "class": QuickDrawDataset,
         "params": {
-            "label_names": ["cat"],
+            "label_names": ["bird", "crab", "guitar"],
             "download": True,
         },
     },
     "splits": [0.8, 0.1, 0.1],
-    "batch_size": 256,
+    "batch_size": 128,
     "tokenizer": {
-        "class": AbsolutePenPositionTokenizer, # DeltaPenPositionTokenizer
+        "class": DeltaPenPositionTokenizer, # AbsolutePenPositionTokenizer
         "params": {
             "bins": 32,
         }
     },
     "model": {
-        "class": SketchTransformer,
+        "class": SketchTransformerConditional,
         "params": {
-            "d_model": 256,
+            "d_model": 512,
             "nhead": 8,
-            "num_layers": 6,
+            "num_layers": 8,
             "max_len": 200,
+            "num_classes": 3,
         }
     },
     "training": {
         "num_epochs": 20,
         "learning_rate": 1e-4,
-        "log_dir": "logs/sketch_transformer_example0",
+        "log_dir": "logs/sketch_transformer_example1",
         "resume": False,
     },
 }
@@ -89,9 +90,10 @@ start_epoch = 0
 checkpoint_path_prefix = f"{model.__class__.__name__}_{hparams.get('tokenizer_class')}-q{hparams.get('tokenizer_bins')}_checkpoint"
 checkpoints = []
 
-for fname in os.listdir(params["training"]["log_dir"]):
-    if fname.startswith(checkpoint_path_prefix):
-        checkpoints.append(fname)
+if os.path.exists(params["training"]["log_dir"]):
+    for fname in os.listdir(params["training"]["log_dir"]):
+        if fname.startswith(checkpoint_path_prefix):
+            checkpoints.append(fname)
 
 if checkpoints and params["training"]["resume"]:
     latest_checkpoint = max(checkpoints, key=lambda x: int(x.split('_checkpoint')[-1].split('.')[0]))

@@ -66,9 +66,9 @@ def train_model(
 
     model = model.to(device)
     optimizer = torch.optim.AdamW(model.parameters(), lr=lr)
-    criterion = nn.CrossEntropyLoss(ignore_index=0)
+    criterion = nn.CrossEntropyLoss()
     writer = SummaryWriter(log_dir=log_dir)
-    writer.add_graph(model, torch.zeros((1, 200), dtype=torch.long).to(device))
+    writer.add_graph(model, torch.zeros((1, model.max_len), dtype=torch.long).to(device))
     writer.add_hparams(hparams, {})
     best_val_loss = float("inf")
 
@@ -242,7 +242,7 @@ def train_model_cond(
     optimizer = torch.optim.AdamW(model.parameters(), lr=lr)
     criterion = nn.CrossEntropyLoss(ignore_index=0)
     writer = SummaryWriter(log_dir=log_dir)
-    writer.add_graph(model, torch.zeros((1, 200), dtype=torch.long).to(device))
+    # TODO add graph
     writer.add_hparams(hparams, {})
     best_val_loss = float("inf")
 
