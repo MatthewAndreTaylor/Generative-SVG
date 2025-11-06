@@ -66,23 +66,22 @@ def train_model(
 
     optimizer = torch.optim.AdamW(model.parameters(), lr=lr)
     criterion = nn.CrossEntropyLoss()
+    pad_idx = tokenizer.vocab["PAD"]
+
+    use_padding_mask = hparams.get("use_padding_mask", False)
+    if use_padding_mask:
+        criterion = nn.CrossEntropyLoss(ignore_index=pad_idx)
+
     writer = SummaryWriter(log_dir=log_dir)
+    writer.add_hparams(hparams, {})
 
     input_ids, _, _ = next(iter(train_loader))
-    input_ids = input_ids.to(device)
-
-    # if hparams.get("use_jit"):
-    #     model = torch.jit.script(model, example_inputs={model: input_ids})
-
-    writer.add_graph(model, input_ids)
-
-    writer.add_hparams(hparams, {})
-    best_val_loss = float("inf")
+    writer.add_graph(model, input_ids.to(device))
 
     # Initial evaluation to log target token distribution (validation set)
     all_targets = []
     for _, target_ids, _ in tqdm(val_loader, desc="Initial Eval"):
-        mask = target_ids != tokenizer.vocab["PAD"]
+        mask = target_ids != pad_idx
         all_targets.append(target_ids[mask].detach().cpu())
 
     all_targets = torch.cat(all_targets)
@@ -95,7 +94,10 @@ def train_model(
             train_loader, desc=f"Epoch {epoch+1}/{epochs} [train]"
         ):
             input_ids, target_ids = input_ids.to(device), target_ids.to(device)
-            logits = model(input_ids)
+            src_key_padding_mask = (
+                None if not use_padding_mask else (input_ids == pad_idx)
+            )
+            logits = model(input_ids, src_key_padding_mask=src_key_padding_mask)
             loss = criterion(logits.view(-1, vocab_size), target_ids.view(-1))
 
             optimizer.zero_grad()
@@ -116,13 +118,17 @@ def train_model(
                 val_loader, desc=f"Epoch {epoch+1}/{epochs} [val]"
             ):
                 input_ids, target_ids = input_ids.to(device), target_ids.to(device)
-                logits = model(input_ids)
+                src_key_padding_mask = (
+                    None if not use_padding_mask else (input_ids == pad_idx)
+                )
+
+                logits = model(input_ids, src_key_padding_mask=src_key_padding_mask)
                 loss = criterion(logits.view(-1, vocab_size), target_ids.view(-1))
                 val_loss += loss.item()
 
                 # Calculate accuracy of next token predictions
                 preds = logits.argmax(dim=-1)
-                mask = target_ids != tokenizer.vocab["PAD"]
+                mask = target_ids != pad_idx
                 correct = (preds[mask] == target_ids[mask]).float().sum()
                 total = mask.sum()
                 acc = (correct / total).item() if total > 0 else 0.0
@@ -135,7 +141,6 @@ def train_model(
 
         # Log histograms of predictions vs targets
         writer.add_histogram("Predictions/ValTokens", all_preds, epoch)
-
         avg_val_loss = val_loss / len(val_loader)
         avg_val_acc = val_token_accuracy / len(val_loader)
         writer.add_scalar("Loss/Train", avg_train_loss, epoch)
@@ -148,37 +153,25 @@ def train_model(
             f"Epoch {epoch+1} | Train Loss: {avg_train_loss:.4f} | Val Loss: {avg_val_loss:.4f}"
         )
 
-        # save checkpoint if validation loss improves after 70% of training
-        if avg_val_loss < best_val_loss and epoch > epochs * 0.7:
-            best_val_loss = avg_val_loss
-            torch.save(
+    # save checkpoint
+    torch.save(
+        model,
+        f"{log_dir}/{model.__class__.__name__}_{hparams.get('tokenizer_class')}-q{hparams.get('tokenizer_bins')}_checkpoint{epoch}.pth",
+    )
+
+    with torch.no_grad():
+        for i in range(num_samples):
+            generated = sample_sequence_feat(
                 model,
-                f"{log_dir}/{model.__class__.__name__}_{hparams.get('tokenizer_class')}-q{hparams.get('tokenizer_bins')}_checkpoint{epoch}.pth",
+                start_tokens=[tokenizer.vocab["START"]],
+                max_len=200,
+                temperature=1.0,
+                greedy=False,
+                eos_id=tokenizer.vocab["END"],
+                device=device,
             )
-
-            generations_inline = ""
-
-            with torch.no_grad():
-                for _ in range(num_samples):
-                    generated = sample_sequence_feat(
-                        model,
-                        start_tokens=[tokenizer.vocab["START"]],
-                        max_len=200,
-                        temperature=1.0,
-                        greedy=False,
-                        eos_id=tokenizer.vocab["END"],
-                        device=device,
-                    )
-                    decoded_sketch = tokenizer.decode(generated, stroke_width=0.3)
-                    generations_inline += f'<div style="display:inline-block; width: 150px; background-color: white; margin-right:10px;"><b>Generated</b><br>{decoded_sketch}</div>'
-
-            writer.add_text("Generations/Val", generations_inline, epoch)
-        elif epoch == epochs - 1:
-            torch.save(
-                model,
-                f"{log_dir}/{model.__class__.__name__}_{hparams.get('tokenizer_class')}-q{hparams.get('tokenizer_bins')}_checkpoint-last.pth",
-            )
-
+            decoded_sketch = tokenizer.decode(generated, stroke_width=0.3)
+            writer.add_text(f"Generations/Val_{i}", decoded_sketch, epoch)
     writer.close()
 
 
@@ -207,9 +200,7 @@ def sample_sequence_feat_cond(
             # top-k / top-p filtering
             next_logits = top_k_filtering(next_logits, top_k)
             next_logits = top_p_filtering(next_logits, top_p)
-
             probs = F.softmax(next_logits, dim=-1)
-
             if greedy:
                 next_token = torch.argmax(probs, dim=-1).item()
             else:
@@ -248,11 +239,15 @@ def train_model_cond(
     optimizer = torch.optim.AdamW(model.parameters(), lr=lr)
     criterion = nn.CrossEntropyLoss()
     writer = SummaryWriter(log_dir=log_dir)
+    writer.add_hparams(hparams, {})
+    
+    pad_idx = tokenizer.vocab["PAD"]
+    use_padding_mask = hparams.get("use_padding_mask", False)
+    if use_padding_mask:
+        criterion = nn.CrossEntropyLoss(ignore_index=pad_idx)
 
     input_ids, _, class_labels = next(iter(train_loader))
     writer.add_graph(model, (input_ids.to(device), class_labels.to(device)))
-    writer.add_hparams(hparams, {})
-    best_val_loss = float("inf")
 
     # Initial evaluation to log target token distribution (validation set)
     all_targets = []
@@ -274,7 +269,11 @@ def train_model_cond(
                 target_ids.to(device),
                 class_labels.to(device),
             )
-            logits = model(input_ids, class_labels)
+            src_key_padding_mask = (
+                None if not use_padding_mask else (input_ids == pad_idx)
+            )
+            
+            logits = model(input_ids, class_labels, src_key_padding_mask=src_key_padding_mask)
             loss = criterion(logits.view(-1, vocab_size), target_ids.view(-1))
 
             optimizer.zero_grad()
@@ -299,7 +298,11 @@ def train_model_cond(
                     target_ids.to(device),
                     class_labels.to(device),
                 )
-                logits = model(input_ids, class_labels)
+                src_key_padding_mask = (
+                    None if not use_padding_mask else (input_ids == pad_idx)
+                )
+
+                logits = model(input_ids, class_labels, src_key_padding_mask=src_key_padding_mask)
                 loss = criterion(logits.view(-1, vocab_size), target_ids.view(-1))
                 val_loss += loss.item()
 
@@ -318,7 +321,6 @@ def train_model_cond(
 
         # Log histograms of predictions vs targets
         writer.add_histogram("Predictions/ValTokens", all_preds, epoch)
-
         avg_val_loss = val_loss / len(val_loader)
         avg_val_acc = val_token_accuracy / len(val_loader)
         writer.add_scalar("Loss/Train", avg_train_loss, epoch)
@@ -331,35 +333,24 @@ def train_model_cond(
             f"Epoch {epoch+1} | Train Loss: {avg_train_loss:.4f} | Val Loss: {avg_val_loss:.4f}"
         )
 
-        # save checkpoint if validation loss improves after 70% of training
-        if avg_val_loss < best_val_loss and epoch > epochs * 0.7:
-            best_val_loss = avg_val_loss
-            torch.save(
+    # save checkpoint
+    torch.save(
+        model,
+        f"{log_dir}/{model.__class__.__name__}_{hparams.get('tokenizer_class')}-q{hparams.get('tokenizer_bins')}_checkpoint{epoch}.pth",
+    )
+
+    with torch.no_grad():
+        for i in range(num_samples):
+            generated = sample_sequence_feat(
                 model,
-                f"{log_dir}/{model.__class__.__name__}_{hparams.get('tokenizer_class')}-q{hparams.get('tokenizer_bins')}_checkpoint{epoch}.pth",
+                start_tokens=[tokenizer.vocab["START"]],
+                max_len=200,
+                temperature=1.0,
+                greedy=False,
+                eos_id=tokenizer.vocab["END"],
+                device=device,
             )
-
-            generations_inline = ""
-
-            with torch.no_grad():
-                for _ in range(num_samples):
-                    generated = sample_sequence_feat(
-                        model,
-                        start_tokens=[tokenizer.vocab["START"]],
-                        max_len=200,
-                        temperature=1.0,
-                        greedy=False,
-                        eos_id=tokenizer.vocab["END"],
-                        device=device,
-                    )
-                    decoded_sketch = tokenizer.decode(generated, stroke_width=0.3)
-                    generations_inline += f'<div style="display:inline-block; width: 150px; background-color: white; margin-right:10px;"><b>Generated</b><br>{decoded_sketch}</div>'
-
-            writer.add_text("Generations/Val", generations_inline, epoch)
-        elif epoch == epochs - 1:
-            torch.save(
-                model,
-                f"{log_dir}/{model.__class__.__name__}_{hparams.get('tokenizer_class')}-q{hparams.get('tokenizer_bins')}_checkpoint-last.pth",
-            )
+            decoded_sketch = tokenizer.decode(generated, stroke_width=0.3)
+            writer.add_text(f"Generations/Val_{i}", decoded_sketch, epoch)
 
     writer.close()

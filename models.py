@@ -28,9 +28,9 @@ class SketchTransformer(nn.Module):
         self.register_buffer("causal_mask", generate_square_subsequent_mask(max_len))
         self.register_buffer("positions", torch.arange(max_len).unsqueeze(0))
 
-    def forward(self, x):
+    def forward(self, x, src_key_padding_mask=None):
         """
-        x: (batch, seq_len) input tokens (assume length == max_len)
+        x: (batch, seq_len) input tokens
         Returns: (batch, seq_len, vocab_size) logits
         """
         batch_size, seq_len = x.shape
@@ -38,7 +38,9 @@ class SketchTransformer(nn.Module):
         x = self.embed(x) + self.pos_embed(positions)  # (batch, seq_len, d_model)
         x = x.transpose(0, 1)  # -> (seq_len, batch, d_model)
         mask = self.causal_mask[:seq_len, :seq_len]
-        x = self.transformer(x, mask=mask)  # (seq_len, batch, d_model)
+        x = self.transformer(
+            x, mask=mask, src_key_padding_mask=src_key_padding_mask
+        )  # (seq_len, batch, d_model)
         x = x.transpose(0, 1)  # back to (batch, seq_len, d_model)
         logits = self.fc_out(x)  # (batch, seq_len, vocab_size)
         return logits
@@ -70,7 +72,7 @@ class SketchTransformerConditional(nn.Module):
         self.register_buffer("causal_mask", generate_square_subsequent_mask(max_len))
         self.register_buffer("positions", torch.arange(max_len).unsqueeze(0))
 
-    def forward(self, x, class_labels):
+    def forward(self, x, class_labels, src_key_padding_mask=None):
         """
         x: (batch, seq_len) input tokens
         class_labels: (batch,) integer labels for conditioning
@@ -83,7 +85,7 @@ class SketchTransformerConditional(nn.Module):
         x = x + class_cond  # simple additive conditioning
         x = x.transpose(0, 1)  # (seq_len, batch, d_model)
         mask = self.causal_mask[:seq_len, :seq_len]
-        x = self.transformer(x, mask=mask)
+        x = self.transformer(x, mask=mask, src_key_padding_mask=src_key_padding_mask)
         x = x.transpose(0, 1)  # back to (batch, seq_len, d_model)
 
         logits = self.fc_out(x)

@@ -1,6 +1,6 @@
 [dataset]
 class = "QuickDrawDataset"
-label_names = ["cat"]
+label_names = ["bird", "crab", "guitar"]
 download = true
 
 [splits]
@@ -13,15 +13,17 @@ class = "DeltaPenPositionTokenizer"
 bins = 32
 
 [model]
-class = "SketchTransformer"
-d_model = 384
+class = "SketchTransformerConditional"
+d_model = 512
 nhead = 8
-num_layers = 6
+num_layers = 8
 max_len = 200
+num_classes = 3
 
 [training]
 batch_size = 128
-num_epochs = 15
+num_epochs = 20
 learning_rate = 1e-4
-log_dir = "logs/sketch_transformer_example1"
-resume = true
+log_dir = "logs/sketch_transformer_example2"
+resume = false
+use_padding_mask = true

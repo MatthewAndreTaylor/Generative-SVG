@@ -71,7 +71,6 @@ def main(config_path: str):
     tokenizer = params["tokenizer"]["class"]( **params["tokenizer"]["params"])
     dataset = SketchDataset(training_data, tokenizer, max_len=params["model"]["params"]["max_len"])
 
-
     # Split dataset
     splits = params["splits"]
     train_size = int(splits[0] * len(dataset))
@@ -80,6 +79,7 @@ def main(config_path: str):
     train_dataset, val_dataset, test_dataset = random_split(
         dataset, [train_size, val_size, test_size]
     )
+    # TODO run tests
 
     batch_size = params["training"]["batch_size"]
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, pin_memory=True)
@@ -100,7 +100,7 @@ def main(config_path: str):
         "tokenizer_class": tokenizer.__class__.__name__,
         "tokenizer_bins": tokenizer.bins,
         "learning_rate": params["training"]["learning_rate"],
-        #"use_jit": params["training"].get("use_jit", False),
+        "use_padding_mask": params["training"].get("use_padding_mask", False),
     }
 
     start_epoch = 0
