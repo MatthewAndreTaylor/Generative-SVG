@@ -3,7 +3,7 @@ import torch
 from torch.utils.data import Dataset
 from collections import defaultdict
 from tqdm import tqdm
-from dataset import SketchDataset
+from dataset import SketchDataset, BaseSketchDataset
 import pyvips
 from io import BytesIO
 from PIL import Image
@@ -19,7 +19,7 @@ def svg_rasterize(svg_string: str) -> Image.Image:
 
 
 class SketchImageDataset(Dataset):
-    def __init__(self, sketch_dataset: SketchDataset):
+    def __init__(self, sketch_dataset: SketchDataset, base_dataset: BaseSketchDataset):
         self.sketch_dataset = sketch_dataset
 
         self.sketch_images = []
@@ -33,16 +33,14 @@ class SketchImageDataset(Dataset):
         else:
             image_data_cache = defaultdict(list)
 
-        for label_name in tqdm(
-            sketch_dataset.parent_dataset.label_names, desc="Rasterizing sketches"
-        ):
+        for label_name in tqdm(base_dataset.label_names, desc="Rasterizing sketches"):
             if label_name in image_data_cache and image_data_cache[label_name]:
                 images = image_data_cache[label_name]
                 self.sketch_images.extend(images)
                 continue
 
             images = []
-            cached = sketch_dataset.parent_dataset.data_cache[label_name]
+            cached = base_dataset.data_cache[label_name]
             for svg in cached:
                 img = svg_rasterize(svg)
                 images.append(img)

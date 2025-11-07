@@ -28,7 +28,7 @@ class SketchTransformer(nn.Module):
         self.register_buffer("causal_mask", generate_square_subsequent_mask(max_len))
         self.register_buffer("positions", torch.arange(max_len).unsqueeze(0))
 
-    def forward(self, x, src_key_padding_mask=None):
+    def forward(self, x, *args, src_key_padding_mask=None):
         """
         x: (batch, seq_len) input tokens
         Returns: (batch, seq_len, vocab_size) logits
@@ -87,6 +87,5 @@ class SketchTransformerConditional(nn.Module):
         mask = self.causal_mask[:seq_len, :seq_len]
         x = self.transformer(x, mask=mask, src_key_padding_mask=src_key_padding_mask)
         x = x.transpose(0, 1)  # back to (batch, seq_len, d_model)
-
         logits = self.fc_out(x)
         return logits

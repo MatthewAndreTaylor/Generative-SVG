@@ -30,6 +30,8 @@ class AbsolutePenPositionTokenizer:
             self.inv_vocab[idx] = pen_token
             idx += 1
 
+        self.pad_token_id = self.vocab["PAD"]
+
     def encode(self, svg_content):
         """
         Encode SVG content into a sequence of tokens.
@@ -112,6 +114,8 @@ class DeltaPenPositionTokenizer:
             self.vocab[pen_token] = idx
             self.inv_vocab[idx] = pen_token
             idx += 1
+
+        self.pad_token_id = self.vocab["PAD"]
 
     def encode(self, svg_content):
         """
@@ -203,6 +207,8 @@ class AbsoluteBezierPenPositionTokenizer:
             self.vocab[pen_token] = idx
             self.inv_vocab[idx] = pen_token
             idx += 1
+
+        self.pad_token_id = self.vocab["PAD"]
 
     def encode(self, svg_content):
         """

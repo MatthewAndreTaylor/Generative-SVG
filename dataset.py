@@ -226,9 +226,7 @@ class SketchDataset(Dataset):
         self.max_len = max_len
         self.pad_id = tokenizer.vocab["PAD"]
         cache_modified = False
-
-        self.parent_dataset = dataset
-
+        self.labels = dataset.labels
         # Try to load some labeled data from cache
         cache_file = os.path.join(
             dataset.out_dir,
@@ -263,10 +261,10 @@ class SketchDataset(Dataset):
             torch.save(tokenized_data_cache, cache_file)
 
     def __getitem__(self, idx):
-        seq = self.seqs[idx]
-        input_ids = torch.tensor(seq[:-1])
-        target_ids = torch.tensor(seq[1:])
-        return input_ids, target_ids, self.parent_dataset.labels[idx]
+        seq = torch.tensor(self.seqs[idx])
+        input_ids = seq[:-1]
+        target_ids = seq[1:]
+        return input_ids, target_ids, self.labels[idx]
 
     def __len__(self):
         return len(self.seqs)

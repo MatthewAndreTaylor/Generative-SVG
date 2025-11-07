@@ -3,11 +3,6 @@ class = "QuickDrawDataset"
 label_names = ["cat"]
 download = true
 
-[splits]
-train = 0.85
-val = 0.1
-test = 0.05
-
 [tokenizer]
 class = "DeltaPenPositionTokenizer"
 bins = 32
@@ -25,3 +20,4 @@ num_epochs = 15
 learning_rate = 1e-4
 log_dir = "logs/sketch_transformer_example1"
 resume = true
+splits = [0.85, 0.1, 0.05]
