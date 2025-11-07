@@ -6,7 +6,6 @@ from torch.utils.data import DataLoader, random_split
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 from dataset import SketchDataset
-from models import SketchTransformer, SketchTransformerConditional
 from utils import top_k_filtering, top_p_filtering
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -146,7 +145,7 @@ class SketchTrainer:
                 input_ids = input_ids.to(device)
                 target_ids = target_ids.to(device)
                 class_labels = class_labels.to(device)
-                
+
                 logits = forward_pass(input_ids, class_labels)
                 loss = criterion(logits.view(-1, model.vocab_size), target_ids.view(-1))
 
@@ -169,7 +168,7 @@ class SketchTrainer:
                     input_ids = input_ids.to(device)
                     target_ids = target_ids.to(device)
                     class_labels = class_labels.to(device)
-                    
+
                     logits = forward_pass(input_ids, class_labels)
                     loss = criterion(
                         logits.view(-1, model.vocab_size), target_ids.view(-1)
@@ -232,28 +231,27 @@ class SketchTrainer:
             model.train()
             total_loss = 0
 
-            if isinstance(model, SketchTransformerConditional):
-                for input_ids, target_ids, class_labels in tqdm(
-                    train_loader, desc=f"Epoch {epoch+1}/{num_epochs} [train]"
-                ):
-                    input_ids = input_ids.to(device)
-                    target_ids = target_ids.to(device)
-                    class_labels = class_labels.to(device)
+            for input_ids, target_ids, class_labels in tqdm(
+                train_loader, desc=f"Epoch {epoch+1}/{num_epochs} [train]"
+            ):
+                input_ids = input_ids.to(device)
+                target_ids = target_ids.to(device)
+                class_labels = class_labels.to(device)
 
-                    with torch.amp.autocast(device_type="cuda", dtype=torch.float16):
-                        logits = forward_pass(input_ids, class_labels)
-                        loss = criterion(
-                            logits.view(-1, model.vocab_size), target_ids.view(-1)
-                        )
+                with torch.amp.autocast(device_type="cuda", dtype=torch.float16):
+                    logits = forward_pass(input_ids, class_labels)
+                    loss = criterion(
+                        logits.view(-1, model.vocab_size), target_ids.view(-1)
+                    )
 
-                    scaler.scale(loss).backward()
-                    scaler.step(optim)
-                    scaler.update()
-                    optim.zero_grad(set_to_none=True)
-                    total_loss += loss.detach()
+                scaler.scale(loss).backward()
+                scaler.step(optim)
+                scaler.update()
+                optim.zero_grad(set_to_none=True)
+                total_loss += loss.detach()
 
             avg_train_loss = total_loss / len(train_loader)
-            self.writer.add_scalar("Loss/Train", avg_train_loss.item(), epoch)
+            self.writer.add_scalar("Loss/Train", avg_train_loss, epoch)
 
             self.model.eval()
             val_loss = 0
@@ -267,13 +265,13 @@ class SketchTrainer:
                     input_ids = input_ids.to(device)
                     target_ids = target_ids.to(device)
                     class_labels = class_labels.to(device)
-                    
+
                     with torch.amp.autocast(device_type="cuda", dtype=torch.float16):
                         logits = forward_pass(input_ids, class_labels)
                         loss = criterion(
                             logits.view(-1, model.vocab_size), target_ids.view(-1)
                         )
-                        
+
                     val_loss += loss.detach()
 
                     # Calculate accuracy of next token predictions
@@ -293,11 +291,9 @@ class SketchTrainer:
             self.writer.add_histogram("Predictions/ValTokens", all_preds, epoch)
             avg_val_loss = val_loss / len(val_loader)
             avg_val_acc = val_token_accuracy / len(val_loader)
-            self.writer.add_scalar("Loss/Val", avg_val_loss.item(), epoch)
+            self.writer.add_scalar("Loss/Val", avg_val_loss, epoch)
             self.writer.add_scalar("Accuracy/ValNextToken", avg_val_acc, epoch)
-            self.writer.add_scalar(
-                "Perplexity/Val", torch.exp(avg_val_loss).item(), epoch
-            )
+            self.writer.add_scalar("Perplexity/Val", torch.exp(avg_val_loss), epoch)
             print(
                 f"Epoch {epoch+1} | Train Loss: {avg_train_loss:.4f} | Val Loss: {avg_val_loss:.4f}"
             )
@@ -340,7 +336,7 @@ class SketchTrainer:
                     next_token = torch.multinomial(probs, num_samples=1).item()
 
             tokens.append(next_token)
-            if eos_id is not None and next_token == eos_id:
+            if next_token == eos_id:
                 break
 
             next_token_tensor = torch.tensor([[next_token]], device=device)
