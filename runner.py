@@ -205,7 +205,7 @@ class SketchTrainer:
         # Save checkpoint
         torch.save(model, f"{self.log_dir}/{self.checkpoint_path_prefix}_{epoch}.pt")
 
-    # Training loop with mixed precision (Only for CUDA devices)
+    # Training loop with mixed precision (https://docs.pytorch.org/docs/stable/amp.html)
     def train_mixed(self, num_epochs: int):
         model = self.model
         train_loader = self.train_loader
@@ -300,6 +300,10 @@ class SketchTrainer:
 
         # Save checkpoint
         torch.save(model, f"{self.log_dir}/{self.checkpoint_path_prefix}_{epoch}.pt")
+
+    def save(self):
+        """Save the trained model to disk."""
+        torch.save(self.model, f"{self.log_dir}/{self.checkpoint_path_prefix}_final.pt")
 
 
 # Note: sampling could be batched for effiecently generating multiple samples at once
