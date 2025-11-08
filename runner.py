@@ -301,45 +301,43 @@ class SketchTrainer:
         # Save checkpoint
         torch.save(model, f"{self.log_dir}/{self.checkpoint_path_prefix}_{epoch}.pt")
 
-    # Note: sampling could be batched for effiecently generating multiple samples at once
-    def sample(
-        self,
-        start_tokens,
-        eos_id,
-        temperature=0.8,
-        top_k=20,
-        top_p=0.7,
-        greedy=False,
-        class_label=0,
-    ):
-        """Autoregressive sampling from the model given a starting token sequence."""
-        model = self.model
-        model.eval()
-        tokens = list(start_tokens)
-        tokens_tensor = torch.tensor([tokens], device=device, dtype=torch.long)
-        class_label_tensor = torch.tensor(
-            [class_label], device=device, dtype=torch.long
-        )
 
-        for _ in range(model.max_len - len(tokens)):
-            with torch.no_grad():
-                logits = model(tokens_tensor, class_label_tensor)
-                next_logits = logits[:, -1, :] / temperature
+# Note: sampling could be batched for effiecently generating multiple samples at once
+def sample(
+    model,
+    start_tokens,
+    eos_id,
+    temperature=0.8,
+    top_k=20,
+    top_p=0.7,
+    greedy=False,
+    class_label=0,
+):
+    """Autoregressive sampling from the model given a starting token sequence."""
+    model.eval()
+    tokens = list(start_tokens)
+    tokens_tensor = torch.tensor([tokens], device=device, dtype=torch.long)
+    class_label_tensor = torch.tensor([class_label], device=device, dtype=torch.long)
 
-                # top-k / top-p filtering
-                next_logits = top_k_filtering(next_logits, top_k)
-                next_logits = top_p_filtering(next_logits, top_p)
-                probs = F.softmax(next_logits, dim=-1)
-                if greedy:
-                    next_token = torch.argmax(probs, dim=-1).item()
-                else:
-                    next_token = torch.multinomial(probs, num_samples=1).item()
+    for _ in range(model.max_len - len(tokens)):
+        with torch.no_grad():
+            logits = model(tokens_tensor, class_label_tensor)
+            next_logits = logits[:, -1, :] / temperature
 
-            tokens.append(next_token)
-            if next_token == eos_id:
-                break
+            # top-k / top-p filtering
+            next_logits = top_k_filtering(next_logits, top_k)
+            next_logits = top_p_filtering(next_logits, top_p)
+            probs = F.softmax(next_logits, dim=-1)
+            if greedy:
+                next_token = torch.argmax(probs, dim=-1).item()
+            else:
+                next_token = torch.multinomial(probs, num_samples=1).item()
 
-            next_token_tensor = torch.tensor([[next_token]], device=device)
-            tokens_tensor = torch.cat([tokens_tensor, next_token_tensor], dim=1)
+        tokens.append(next_token)
+        if next_token == eos_id:
+            break
 
-        return tokens
+        next_token_tensor = torch.tensor([[next_token]], device=device)
+        tokens_tensor = torch.cat([tokens_tensor, next_token_tensor], dim=1)
+
+    return tokens

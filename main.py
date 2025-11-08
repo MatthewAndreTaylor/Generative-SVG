@@ -5,7 +5,7 @@ from argparse import ArgumentParser
 from dataset import QuickDrawDataset, SketchDataset
 from tokenizers import AbsolutePenPositionTokenizer, DeltaPenPositionTokenizer
 from models import SketchTransformer, SketchTransformerConditional
-from runner import SketchTrainer
+from runner import SketchTrainer, sample
 
 CLASS_MAP = {
     "QuickDrawDataset": QuickDrawDataset,
@@ -51,7 +51,8 @@ def main(config_path: str):
 
     trainer.train_mixed(num_epochs=trainer.training_config.get("num_epochs", 10))
 
-    generated = trainer.sample(
+    generated = sample(
+        model=trainer.model,
         start_tokens=[trainer.tokenizer.vocab["START"]],
         temperature=1.0,
         greedy=False,
