@@ -203,7 +203,7 @@ class SketchTrainer:
             )
 
         # Save checkpoint
-        torch.save(model, f"{self.log_dir}/{self.checkpoint_path_prefix}_{epoch}.pt")
+        self.save()
 
     # Training loop with mixed precision (https://docs.pytorch.org/docs/stable/amp.html)
     def train_mixed(self, num_epochs: int):
@@ -299,7 +299,7 @@ class SketchTrainer:
             )
 
         # Save checkpoint
-        torch.save(model, f"{self.log_dir}/{self.checkpoint_path_prefix}_{epoch}.pt")
+        self.save()
 
     def save(self):
         """Save the trained model to disk."""
