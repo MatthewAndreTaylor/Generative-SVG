@@ -19,6 +19,5 @@ batch_size = 128
 num_epochs = 16
 learning_rate = 1e-4
 log_dir = "logs/sketch_transformer_example2"
-resume = true
 use_padding_mask = true
 splits = [0.85, 0.1, 0.05]

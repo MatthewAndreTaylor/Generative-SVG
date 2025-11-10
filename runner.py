@@ -1,9 +1,11 @@
 import os
+from datetime import datetime
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import DataLoader, random_split
 from torch.utils.tensorboard import SummaryWriter
+from torch.utils.tensorboard.summary import hparams
 from tqdm import tqdm
 from dataset import SketchDataset
 from utils import top_k_filtering, top_p_filtering
@@ -16,6 +18,15 @@ torch.manual_seed(seed)
 
 if device == "cuda":
     torch.cuda.manual_seed_all(seed)
+
+
+def add_hparams(writer, param_dict, metrics_dict):
+    exp, ssi, sei = hparams(param_dict, metrics_dict)
+    writer.file_writer.add_summary(exp)
+    writer.file_writer.add_summary(ssi)
+    writer.file_writer.add_summary(sei)
+    for k, v in metrics_dict.items():
+        writer.add_scalar(k, v)
 
 
 class SketchTrainer:
@@ -44,7 +55,6 @@ class SketchTrainer:
         self.test_loader = DataLoader(
             test_dataset, batch_size=batch_size, shuffle=False, pin_memory=True
         )
-        # TODO run tests
 
         lr = training_config.get("learning_rate", 1e-4)
         self.optim = torch.optim.AdamW(self.model.parameters(), lr=lr)
@@ -57,27 +67,25 @@ class SketchTrainer:
             )
 
         # Logging hyperparameter setup
-        hparams = {
-            "model_class": model.__class__.__name__,
-            "num_layers": model.num_layers,
+        trainer_hparams = {
+            "model": model.__class__.__name__,
+            "n_layers": model.num_layers,
             "d_model": model.d_model,
             "nhead": model.nhead,
             "max_len": model.max_len,
-            "tokenizer_class": tokenizer.__class__.__name__,
+            "tokenizer": tokenizer.__class__.__name__,
             "tokenizer_bins": tokenizer.bins,
-            "learning_rate": lr,
+            "lr": lr,
             "use_padding_mask": training_config.get("use_padding_mask", False),
         }
 
-        # Checkpointing setup
-        self.checkpoint_path_prefix = f"{model.__class__.__name__}_{tokenizer.__class__.__name__}-q{tokenizer.bins}_checkpoint"
-        self.log_dir = training_config.get("log_dir", "./logs")
-        self.writer = SummaryWriter(log_dir=self.log_dir)
-        self.writer.add_hparams(hparams, {})
-        self.start_epoch = 0
+        self.log_dir = training_config.get("log_dir", None)
+        assert self.log_dir is not None, "log_dir must be specified in training_config"
 
-        if self.training_config.get("resume"):
-            self.load_from_checkpoint()
+        # Checkpointing setup
+        self.load_from_checkpoint(training_config.get("checkpoint_path", None))
+        self.writer = SummaryWriter(log_dir=self.log_dir_entry)
+        add_hparams(self.writer, trainer_hparams, {})
 
         input_ids, _, class_labels = next(iter(self.train_loader))
         example_input = (input_ids.to(device), class_labels.to(device))
@@ -92,27 +100,22 @@ class SketchTrainer:
         all_targets = torch.cat(all_targets)
         self.writer.add_histogram("Targets/ValTokens", all_targets, 0)
 
-    def load_from_checkpoint(self):
-        checkpoints = []
-        if os.path.exists(self.log_dir):
-            for fname in os.listdir(self.log_dir):
-                if fname.startswith(self.checkpoint_path_prefix):
-                    checkpoints.append(fname)
-
-        if not checkpoints:
-            print("No checkpoints found, starting from scratch.")
+    def load_from_checkpoint(self, checkpoint_path):
+        if not checkpoint_path or not os.path.exists(checkpoint_path):
+            print("No checkpoint found, starting fresh training.")
+            self.log_dir_entry = os.path.join(
+                self.log_dir, f"{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+            )
+            self.start_epoch = 0
             return
 
-        latest_checkpoint = max(
-            checkpoints, key=lambda x: int(x.split("_checkpoint")[-1].split(".")[0])
+        self.start_epoch = int(
+            os.path.basename(checkpoint_path).split("_")[-1].split(".")[0]
         )
-        checkpoint_path = os.path.join(self.log_dir, latest_checkpoint)
-        print(f"Loading checkpoint from {checkpoint_path}")
-        self.model = torch.load(checkpoint_path, weights_only=False)
-        self.start_epoch = (
-            int(latest_checkpoint.split("_checkpoint")[-1].split(".")[0]) + 1
-        )
-        print(f"Resuming from epoch {self.start_epoch}")
+        state_dict = torch.load(checkpoint_path, weights_only=True)
+        self.model.load_state_dict(state_dict)
+        self.log_dir_entry = os.path.dirname(os.path.abspath(checkpoint_path))
+        print(f"Resumed training from checkpoint: {checkpoint_path}")
 
     def train(self, num_epochs: int):
         """Training loop with validation and TensorBoard logging."""
@@ -202,8 +205,7 @@ class SketchTrainer:
                 f"Epoch {epoch+1} | Train Loss: {avg_train_loss:.4f} | Val Loss: {avg_val_loss:.4f}"
             )
 
-        # Save checkpoint
-        self.save_model()
+        self.save(num_epochs)
 
     # Training loop with mixed precision (https://docs.pytorch.org/docs/stable/amp.html)
     def train_mixed(self, num_epochs: int):
@@ -298,12 +300,14 @@ class SketchTrainer:
                 f"Epoch {epoch+1} | Train Loss: {avg_train_loss:.4f} | Val Loss: {avg_val_loss:.4f}"
             )
 
-        # Save checkpoint
-        self.save_model()
+        self.save(num_epochs)
 
-    def save_model(self):
+    def save(self, epoch):
         """Save the trained model to disk."""
-        torch.save(self.model, f"{self.log_dir}/{self.checkpoint_path_prefix}_final.pt")
+        torch.save(
+            self.model.state_dict(),
+            os.path.join(self.log_dir_entry, f"model_{epoch}.pt"),
+        )
 
 
 # Note: sampling could be batched for effiecently generating multiple samples at once
