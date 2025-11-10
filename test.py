@@ -1,6 +1,16 @@
 from runner import SketchTrainer, device
 import torch
 from tqdm import tqdm
+from torchmetrics.image.fid import FrechetInceptionDistance
+from raster_dataset import svg_rasterize
+import numpy as np
+
+
+def to_3ch_tensor(img_pil, size=299):
+    img_pil = img_pil.resize((size, size))
+    arr = np.array(img_pil, dtype=np.uint8)
+    t = torch.from_numpy(arr).unsqueeze(0).float() / 255
+    return t.repeat(3, 1, 1)                             
 
 
 def test(sketch_trainer: SketchTrainer):
@@ -38,4 +48,62 @@ def test(sketch_trainer: SketchTrainer):
     print(f"Test Next Token Accuracy: {test_token_accuracy / len(test_loader):.4f}")
 
     # TODO FID, Inception Score
+    start_id = sketch_trainer.tokenizer.vocab["START"]
+    end_id = sketch_trainer.tokenizer.vocab["END"]
+
+    def _trim_at_end(ids):
+        if end_id in ids:
+            idx = ids.index(end_id)
+            return ids[: idx + 1]
+        return ids
+    
+    fid = FrechetInceptionDistance(device=device)
+    model.eval()
+    with torch.no_grad():
+        for input_ids, target_ids, class_labels in tqdm(test_loader, desc="FID"):
+            input_ids = input_ids.to(device)
+            target_ids = target_ids.to(device)
+            class_labels = class_labels.to(device)
+
+            if use_padding_mask:
+                mask = input_ids == sketch_trainer.tokenizer.pad_token_id
+                logits = model(input_ids, class_labels, src_key_padding_mask=mask)
+            else:
+                logits = model(input_ids, class_labels)
+
+            preds = logits.argmax(dim=-1).cpu()
+            targets_cpu = target_ids.cpu()
+
+            real_batch, fake_batch = []
+            real_batch = []
+            fake_batch = []
+            B = preds.size(0)
+            for b in range(B):
+                # REAL sequence = [START] + gold targets up to END
+                real_ids = [start_id] + targets_cpu[b].tolist()
+                real_ids = _trim_at_end(real_ids)
+                real_svg = sketch_trainer.tokenizer.decode(real_ids)
+                real_img = svg_rasterize(real_svg)
+                r = to_3ch_tensor(real_img)
+
+                # FAKE sequence = [START] + argmax preds up to END
+                fake_ids = [start_id] + preds[b].tolist()
+                fake_ids = _trim_at_end(fake_ids)
+                fake_svg = sketch_trainer.tokenizer.decode(fake_ids)
+                fake_img = svg_rasterize(fake_svg)
+                f = to_3ch_tensor(fake_img)
+
+                real_batch.append(r.unsqueeze(0))
+                fake_batch.append(f.unsqueeze(0))
+
+            real_images = torch.cat(real_batch, dim=0).to(device)
+            fake_images = torch.cat(fake_batch, dim=0).to(device)
+
+            fid.update(real_images, is_real=True)
+            fid.update(fake_images, is_real=False)
+
+    fid_score = fid.compute().item()
+    sketch_trainer.writer.add_scalar("FID/Test", fid_score, 0)
+    print(f"Test FID: {fid_score:.4f}")
+
     pass
