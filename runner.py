@@ -308,6 +308,7 @@ class SketchTrainer:
             self.model.state_dict(),
             os.path.join(self.log_dir_entry, f"model_{epoch}.pt"),
         )
+        torch.save(self.model, os.path.join(self.log_dir_entry, f"full_{epoch}.pt"))
 
 
 # Note: sampling could be batched for effiecently generating multiple samples at once
