@@ -21,6 +21,4 @@ sketchy.7z
 *.pth
 *.pkl
 
-logs
-
-geometry-score
+logs*
