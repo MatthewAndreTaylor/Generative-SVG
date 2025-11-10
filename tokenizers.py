@@ -141,6 +141,11 @@ class DeltaPenPositionTokenizer:
                 end = quantize_point(seg.end)
                 dx = end.real - prev.real
                 dy = end.imag - prev.imag
+                
+                # If there is no movement skip
+                if dx == 0 and dy == 0:
+                    continue
+                
                 tokens.append(self.vocab[(int(dx), int(dy))])
                 prev = end
 
