@@ -2,16 +2,14 @@ from runner import SketchTrainer, device
 import torch
 from tqdm import tqdm
 from torchmetrics.image.fid import FrechetInceptionDistance
+from torchmetrics.image.inception import InceptionScore
 from raster_dataset import svg_rasterize
 import numpy as np
 
-
-def to_3ch_tensor(img_pil, size=299):
-    img_pil = img_pil.resize((size, size))
+def to_3ch_tensor(img_pil):
     arr = np.array(img_pil, dtype=np.uint8)
-    t = torch.from_numpy(arr).unsqueeze(0).float() / 255
-    return t.repeat(3, 1, 1)                             
-
+    t = torch.from_numpy(arr).unsqueeze(0)
+    return t.repeat(3, 1, 1) 
 
 def test(sketch_trainer: SketchTrainer):
     """Evaluate the model on the test set and return average loss and accuracy."""
@@ -39,15 +37,11 @@ def test(sketch_trainer: SketchTrainer):
             mask = target_ids != sketch_trainer.tokenizer.pad_token_id
             correct = (preds[mask] == target_ids[mask]).float().sum()
             total = mask.sum()
-            acc = (correct / total).detach() if total > 0 else 0.0
+            acc = (correct / total).detach() if total > 0 else torch.tensor(0.0, device=device)
             test_token_accuracy += acc
 
-    sketch_trainer.writer.add_scalar(
-        "Accuracy/TestNextToken", test_token_accuracy / len(test_loader), 0
-    )
     print(f"Test Next Token Accuracy: {test_token_accuracy / len(test_loader):.4f}")
 
-    # TODO FID, Inception Score
     start_id = sketch_trainer.tokenizer.vocab["START"]
     end_id = sketch_trainer.tokenizer.vocab["END"]
 
@@ -56,11 +50,13 @@ def test(sketch_trainer: SketchTrainer):
             idx = ids.index(end_id)
             return ids[: idx + 1]
         return ids
-    
-    fid = FrechetInceptionDistance(device=device)
+
+    fid = FrechetInceptionDistance(input_img_size=(1, 299, 299)).to(device)
+    inception = InceptionScore(splits=10, normalize=False).to(device)
+
     model.eval()
     with torch.no_grad():
-        for input_ids, target_ids, class_labels in tqdm(test_loader, desc="FID"):
+        for input_ids, target_ids, class_labels in tqdm(test_loader, desc="FID/IS"):
             input_ids = input_ids.to(device)
             target_ids = target_ids.to(device)
             class_labels = class_labels.to(device)
@@ -74,9 +70,8 @@ def test(sketch_trainer: SketchTrainer):
             preds = logits.argmax(dim=-1).cpu()
             targets_cpu = target_ids.cpu()
 
-            real_batch, fake_batch = []
             real_batch = []
-            fake_batch = []
+            fake_batch = []          
             B = preds.size(0)
             for b in range(B):
                 # REAL sequence = [START] + gold targets up to END
@@ -92,18 +87,29 @@ def test(sketch_trainer: SketchTrainer):
                 fake_svg = sketch_trainer.tokenizer.decode(fake_ids)
                 fake_img = svg_rasterize(fake_svg)
                 f = to_3ch_tensor(fake_img)
+                f2 = to_3ch_tensor(fake_img)
 
-                real_batch.append(r.unsqueeze(0))
+                real_batch.append(r.unsqueeze(0))  # 1x3x299x299
                 fake_batch.append(f.unsqueeze(0))
 
             real_images = torch.cat(real_batch, dim=0).to(device)
             fake_images = torch.cat(fake_batch, dim=0).to(device)
 
-            fid.update(real_images, is_real=True)
-            fid.update(fake_images, is_real=False)
+            # Update FID (needs both real and fake)
+            fid.update(real_images, real=True)
+            fid.update(fake_images, real=False)
+
+            # Update Inception Score (only generated images)
+            inception.update(fake_images)
 
     fid_score = fid.compute().item()
-    sketch_trainer.writer.add_scalar("FID/Test", fid_score, 0)
-    print(f"Test FID: {fid_score:.4f}")
+    is_mean, is_std = inception.compute()
+    is_mean = is_mean.item()
+    is_std = is_std.item()
 
-    pass
+    sketch_trainer.writer.add_scalar("FID/Test", fid_score, 0)
+    sketch_trainer.writer.add_scalar("IS/TestMean", is_mean, 0)
+    sketch_trainer.writer.add_scalar("IS/TestStd", is_std, 0)
+
+    print(f"Test FID: {fid_score:.4f}")
+    print(f"Test Inception Score: mean={is_mean:.4f}, std={is_std:.4f}")

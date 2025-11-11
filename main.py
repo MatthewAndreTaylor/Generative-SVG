@@ -3,9 +3,10 @@ import time
 import tomllib
 from argparse import ArgumentParser
 from dataset import QuickDrawDataset, SketchDataset
-from tokenizers import AbsolutePenPositionTokenizer, DeltaPenPositionTokenizer
+from sketch_tokenizers import AbsolutePenPositionTokenizer, DeltaPenPositionTokenizer
 from models import SketchTransformer, SketchTransformerConditional
 from runner import SketchTrainer, sample
+from test import test
 
 CLASS_MAP = {
     "QuickDrawDataset": QuickDrawDataset,
@@ -65,6 +66,8 @@ def main(config_path: str):
     )
     with open(output_path, "w") as f:
         f.write(decoded_sketch)
+        
+    test(sketch_trainer=trainer)
 
 
 if __name__ == "__main__":
