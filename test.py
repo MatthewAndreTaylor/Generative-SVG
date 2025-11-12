@@ -6,10 +6,12 @@ from torchmetrics.image.inception import InceptionScore
 from raster_dataset import svg_rasterize
 import numpy as np
 
+
 def to_3ch_tensor(img_pil):
     arr = np.array(img_pil, dtype=np.uint8)
     t = torch.from_numpy(arr).unsqueeze(0)
-    return t.repeat(3, 1, 1) 
+    return t.repeat(3, 1, 1)
+
 
 def test(sketch_trainer: SketchTrainer):
     """Evaluate the model on the test set and return average loss and accuracy."""
@@ -37,7 +39,11 @@ def test(sketch_trainer: SketchTrainer):
             mask = target_ids != sketch_trainer.tokenizer.pad_token_id
             correct = (preds[mask] == target_ids[mask]).float().sum()
             total = mask.sum()
-            acc = (correct / total).detach() if total > 0 else torch.tensor(0.0, device=device)
+            acc = (
+                (correct / total).detach()
+                if total > 0
+                else torch.tensor(0.0, device=device)
+            )
             test_token_accuracy += acc
 
     print(f"Test Next Token Accuracy: {test_token_accuracy / len(test_loader):.4f}")
@@ -71,7 +77,7 @@ def test(sketch_trainer: SketchTrainer):
             targets_cpu = target_ids.cpu()
 
             real_batch = []
-            fake_batch = []          
+            fake_batch = []
             B = preds.size(0)
             for b in range(B):
                 # REAL sequence = [START] + gold targets up to END
@@ -87,7 +93,6 @@ def test(sketch_trainer: SketchTrainer):
                 fake_svg = sketch_trainer.tokenizer.decode(fake_ids)
                 fake_img = svg_rasterize(fake_svg)
                 f = to_3ch_tensor(fake_img)
-                f2 = to_3ch_tensor(fake_img)
 
                 real_batch.append(r.unsqueeze(0))  # 1x3x299x299
                 fake_batch.append(f.unsqueeze(0))

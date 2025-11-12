@@ -13,6 +13,8 @@ from prepare_data import parse_viewbox, make_quantizer
 
 
 class AbsolutePenPositionTokenizer:
+    """Tokenizer that encodes/decodes SVG paths using absolute pen positions."""
+
     def __init__(self, bins=128):
         self.bins = bins
         self.vocab = {}
@@ -96,6 +98,8 @@ class AbsolutePenPositionTokenizer:
 
 
 class DeltaPenPositionTokenizer:
+    """Tokenizer that encodes/decodes SVG paths using delta pen positions."""
+
     def __init__(self, bins=128):
         self.bin_range = range(-bins, bins + 1)
         self.bins = bins
@@ -195,6 +199,7 @@ class DeltaPenPositionTokenizer:
 
 
 class AbsoluteBezierPenPositionTokenizer:
+    """Tokenizer that encodes/decodes SVG paths using absolute Bezier pen positions."""
 
     def __init__(self, bins=128):
         self.bins = bins

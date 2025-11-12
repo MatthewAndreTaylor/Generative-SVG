@@ -112,8 +112,8 @@ class SketchTrainer:
         self.start_epoch = int(
             os.path.basename(checkpoint_path).split("_")[-1].split(".")[0]
         )
-        state_dict = torch.load(checkpoint_path, weights_only=True)
-        self.model.load_state_dict(state_dict)
+        model = torch.load(checkpoint_path, weights_only=False)
+        self.model.load_state_dict(model.state_dict())
         self.log_dir_entry = os.path.dirname(os.path.abspath(checkpoint_path))
         print(f"Resumed training from checkpoint: {checkpoint_path}")
 
@@ -207,7 +207,6 @@ class SketchTrainer:
 
         self.save(num_epochs)
 
-    # Training loop with mixed precision (https://docs.pytorch.org/docs/stable/amp.html)
     def train_mixed(self, num_epochs: int):
         model = self.model
         train_loader = self.train_loader
@@ -216,6 +215,8 @@ class SketchTrainer:
         optim = self.optim
         criterion = self.criterion
         epoch = self.start_epoch
+
+        # Mixed precision scaler (https://docs.pytorch.org/docs/stable/amp.html)
         scaler = torch.amp.GradScaler(device)
 
         if use_padding_mask:
@@ -304,11 +305,7 @@ class SketchTrainer:
 
     def save(self, epoch):
         """Save the trained model to disk."""
-        torch.save(
-            self.model.state_dict(),
-            os.path.join(self.log_dir_entry, f"model_{epoch}.pt"),
-        )
-        torch.save(self.model, os.path.join(self.log_dir_entry, f"full_{epoch}.pt"))
+        torch.save(self.model, os.path.join(self.log_dir_entry, f"model_{epoch}.pt"))
 
 
 # Note: sampling could be batched for effiecently generating multiple samples at once
