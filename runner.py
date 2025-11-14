@@ -8,7 +8,7 @@ from torch.utils.data import DataLoader, random_split
 from torch.utils.tensorboard import SummaryWriter
 from torch.utils.tensorboard.summary import hparams
 from tqdm import tqdm
-from dataset import SketchDataset
+from dataset import SketchDataset, BaseSketchDataset
 from utils import top_k_filtering, top_p_filtering
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -31,7 +31,7 @@ def add_hparams(writer, param_dict, metrics_dict):
 
 
 class SketchTrainer:
-    def __init__(self, model, dataset, tokenizer, training_config: dict):
+    def __init__(self, model, dataset: BaseSketchDataset, tokenizer, training_config: dict):
         self.training_config = training_config
         self.model = model.to(device)
         self.tokenizer = tokenizer
@@ -69,6 +69,7 @@ class SketchTrainer:
 
         # Logging hyperparameter setup
         self.hparams = {
+            "classes": dataset.label_names,
             "model": model.__class__.__name__,
             "n_layers": model.num_layers,
             "d_model": model.d_model,
@@ -311,6 +312,25 @@ class SketchTrainer:
         
         with open(os.path.join(self.log_dir_entry, "hparams.json"), "w") as f:
             json.dump(self.hparams, f, indent=4)
+            
+    def export_onnx(self, onnx_path):
+        """Export the trained model to ONNX format."""
+        input_ids, _, class_labels = next(iter(self.train_loader))
+        example_input = (input_ids.to(device), class_labels.to(device))
+
+        torch.onnx.export(
+            self.model,
+            example_input,
+            onnx_path,
+            input_names=["input_ids", "class_labels"],
+            output_names=["logits"],
+            dynamic_axes={
+                "input_ids": {0: "batch_size", 1: "sequence_length"},
+                "logits": {0: "batch_size", 1: "sequence_length"},
+            },
+            opset_version=13,
+        )
+        print(f"Model exported to ONNX format at: {onnx_path}")
 
 
 # Note: sampling could be batched for effiecently generating multiple samples at once

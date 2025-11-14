@@ -15,37 +15,26 @@ url  = "https://github.com/tassonse"
 pdf_url  = "static/paper.pdf"
 code_url = "https://github.com/MatthewAndreTaylor/Generative-SVG"
 
+demo_classes = ["cat", "dog", "bird", "fish", "crab", "guitar", "pizza", "sailboat", "bulldozer", "apple", "monkey", "skull"]
+
 
 abstract = """
 Existing sketch generation models rely on hand-crafted stroke representations that are not very generalizable across datasets or drawing styles, and train multiple models to generate sketches over different object classes.
 These issues make it challenging to embed deeper semantic knowledge of sketches or scale to a variety of classes.
 Furthermore, the temporal and structural information present in human-drawn sketches is frequently lost by conventional raster-based methods.
 We present a new system for conditional sketch generation and completion that uses a novel quantization and tokenization technique before encoding sketches into discrete token sequences.
-To improve data quality, we use Ramer-Douglas-Peucker (RDP) and Bezier curve fitting to reconstruct smoother strokes.
-We train a lightweight transformer model with an added class embedding layer to learn from multiple sketch object classes at once. This allows a single model to generalize across classes while reusing high-level shape priors.
+To improve data quality, we simplify input paths and to keep the quality of outputs we fit the strokes to bezier curves.
+We train a lightweight transformer model with an added class embedding layer to learn from multiple sketch object classes at once. This allows a single model to generalize across classes and reuse learned shape priors.
 """
 
-    
-citations = [
-"""@article{DBLP:journals/corr/VaswaniSPUJGKP17,
-author       = {Ashish Vaswani and
-                Noam Shazeer and
-                Niki Parmar and
-                Jakob Uszkoreit and
-                Llion Jones and
-                Aidan N. Gomez and
-                Lukasz Kaiser and
-                Illia Polosukhin},
-title        = {Attention Is All You Need},
-journal      = {CoRR},
-volume       = {abs/1706.03762},
-year         = {2017},
-url          = {http://arxiv.org/abs/1706.03762},
-eprinttype    = {arXiv},
-eprint       = {1706.03762},
-timestamp    = {Sat, 23 Jan 2021 01:20:40 +0100},
-biburl       = {https://dblp.org/rec/journals/corr/VaswaniSPUJGKP17.bib},
-bibsource    = {dblp computer science bibliography, https://dblp.org}
-}
+representation = """
+We represent a sketch as a sequence of strokes ...
 """
-]
+
+model = """
+Our model is a transformer-based architecture ...
+"""
+
+training = """
+We train our model on the Google Quick, Draw! dataset ...
+"""

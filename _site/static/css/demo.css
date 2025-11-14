@@ -1,0 +1,87 @@
+#svg-output.svg-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+  gap: 10px;
+  align-items: start;
+}
+.svg-item {
+  background: #fff;
+  border: 1px solid #ddd;
+  padding: 6px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  position: relative;
+}
+.svg-item svg {
+  width: 96px;
+  height: 96px;
+  display: block;
+}
+
+.svg-download-btn {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  border: none;
+  background: rgba(255,255,255,0.9);
+  color: #333;
+  border-radius: 6px;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.15);
+  opacity: 0;
+  transition: opacity 0.15s ease-in-out, transform 0.05s ease-in-out;
+}
+.svg-item:hover .svg-download-btn { opacity: 1; }
+.svg-download-btn:active { transform: scale(0.96); }
+#sketch-app {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+@media (min-width: 960px) {
+  #sketch-app { flex-direction: row; }
+  #svg-pane { flex: 1; }
+  #sketch-pane { flex: 1; }
+}
+
+#sketch-pane {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+#canvas-container canvas {
+  border: 1px solid #ccc;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+#svg-pane {
+  background: #fff;
+  overflow: auto;
+}
+
+#svg-output svg {
+  width: 100%;
+  height: auto;
+  border: 1px solid #ddd;
+  background: #fff;
+}
+
+@keyframes draw { to { stroke-dashoffset: 0; } }
+
+#svg-output path {
+  stroke-dasharray: 1000;
+  stroke-dashoffset: 1000;
+  animation: draw 4s linear forwards;
+}
