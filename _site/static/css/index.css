@@ -1,0 +1,22 @@
+.publication-header .hero-body {
+    padding-bottom: 0 !important;
+}
+
+.publication-title {
+    margin: 10px 0 10px 0 !important;
+    color: #000;
+    width: fit-content;
+    font-family: 'Playfair Display', serif;
+}
+
+.publication-authors a {
+   color: hsl(204, 86%, 53%) !important;
+}
+
+.publication-authors a:hover {
+    text-decoration: underline;
+}
+
+.publication-links {
+    margin-top: 1em;
+}

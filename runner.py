@@ -1,4 +1,5 @@
 import os
+import json
 from datetime import datetime
 import torch
 import torch.nn as nn
@@ -67,7 +68,7 @@ class SketchTrainer:
             )
 
         # Logging hyperparameter setup
-        trainer_hparams = {
+        self.hparams = {
             "model": model.__class__.__name__,
             "n_layers": model.num_layers,
             "d_model": model.d_model,
@@ -85,7 +86,7 @@ class SketchTrainer:
         # Checkpointing setup
         self.load_from_checkpoint(training_config.get("checkpoint_path", None))
         self.writer = SummaryWriter(log_dir=self.log_dir_entry)
-        add_hparams(self.writer, trainer_hparams, {})
+        add_hparams(self.writer, self.hparams, {})
 
         input_ids, _, class_labels = next(iter(self.train_loader))
         example_input = (input_ids.to(device), class_labels.to(device))
@@ -208,6 +209,7 @@ class SketchTrainer:
         self.save(num_epochs)
 
     def train_mixed(self, num_epochs: int):
+        """Training loop with mixed precision, validation, and TensorBoard logging."""
         model = self.model
         train_loader = self.train_loader
         val_loader = self.val_loader
@@ -306,6 +308,9 @@ class SketchTrainer:
     def save(self, epoch):
         """Save the trained model to disk."""
         torch.save(self.model, os.path.join(self.log_dir_entry, f"model_{epoch}.pt"))
+        
+        with open(os.path.join(self.log_dir_entry, "hparams.json"), "w") as f:
+            json.dump(self.hparams, f, indent=4)
 
 
 # Note: sampling could be batched for effiecently generating multiple samples at once
