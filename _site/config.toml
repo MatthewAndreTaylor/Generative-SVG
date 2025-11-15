@@ -15,7 +15,9 @@ url  = "https://github.com/tassonse"
 pdf_url  = "static/paper.pdf"
 code_url = "https://github.com/MatthewAndreTaylor/Generative-SVG"
 
-demo_classes = ["cat", "dog", "bird", "fish", "crab", "guitar", "sailboat", "bulldozer", "apple", "monkey", "skull", "whale"]
+
+demo_classes = ["bird", "crab", "guitar"]
+# demo_classes = ["cat", "dog", "bird", "fish", "crab", "guitar", "sailboat", "bulldozer", "apple", "monkey", "skull", "whale"]
 
 
 abstract = """

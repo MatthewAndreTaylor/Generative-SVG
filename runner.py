@@ -317,20 +317,32 @@ class SketchTrainer:
 
     def export_onnx(self, onnx_path):
         """Export the trained model to ONNX format."""
-        input_ids, _, class_labels = next(iter(self.train_loader))
-        example_input = (input_ids.to(device), class_labels.to(device))
+        dummy_tokens = torch.randint(
+            low=0,
+            high=self.model.vocab_size,
+            size=(1, self.model.max_len),
+            dtype=torch.long,
+            device=device
+        )
+
+        dummy_class = torch.tensor(
+            [0],
+            dtype=torch.long,
+            device=device
+        )
 
         torch.onnx.export(
             self.model,
-            example_input,
+            (dummy_tokens, dummy_class),
             onnx_path,
             input_names=["input_ids", "class_labels"],
             output_names=["logits"],
             dynamic_axes={
-                "input_ids": {0: "batch_size", 1: "sequence_length"},
-                "logits": {0: "batch_size", 1: "sequence_length"},
+                "input_ids":   {0: "batch_size", 1: "sequence_length"},
+                "class_labels": {0: "batch_size"},
+                "logits":      {0: "batch_size", 1: "sequence_length"},
             },
-            opset_version=13,
+            opset_version=17,
         )
         print(f"Model exported to ONNX format at: {onnx_path}")
 
