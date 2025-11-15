@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{{ title }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bulma.min.css') }}" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/index.css') }}" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/demo.css') }}" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
+  </head>
+  <body>
+    <section class="hero publication-header">
+      <div class="hero-body">
+        <div class="container">
+          <div class="columns is-centered">
+            <div class="column is-two-thirds">
+              <div class="is-size-6">CSC490 Capstone Project</div>
+              <h1 class="title is-1 publication-title">{{ title }}</h1>
+              <div class="is-size-5 publication-authors">
+                {% for a in authors %}
+                  <span class="author-block">
+                    <a href="{{ a.url }}" target="_blank" rel="noopener">{{ a.name }}</a>
+                  </span>{% if not loop.last %},{% endif %}
+                {% endfor %}
+              </div>
+              <div class="publication-links">
+                {% if pdf_url %}
+                <span class="link-block">
+                  <a class="external-link button is-small is-rounded is-link" href="{{ pdf_url }}" target="_blank" rel="noopener">
+                    <span class="icon">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M14 14V4.5L9.5 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2zM9.5 3A1.5 1.5 0 0 0 11 4.5h2V14a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h5.5v2z" />
+                      </svg>
+                    </span>
+                    <span>PDF</span>
+                  </a>
+                </span>
+                {% endif %}
+                {% if code_url %}
+                <span class="link-block">
+                  <a class="external-link button is-small is-rounded is-link" href="{{ code_url }}" target="_blank" rel="noopener">
+                    <span class="icon">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.012 8.012 0 0 0 16 8c0-4.42-3.58-8-8-8z" />
+                      </svg>
+                    </span>
+                    <span>Code</span>
+                  </a>
+                </span>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container">
+        <div class="content">
+          <div class="columns is-centered">
+            <div class="column is-half">
+              <h2>Abstract</h2>
+              <p>{{ abstract | safe }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="content">
+        <div class="columns is-centered">
+          <div class="column is-two-thirds">
+            <h2>Demo</h2>
+            <div id="sketch-app">
+              <div id="sketch-pane">
+                <h3 class="title is-5">Input</h3>
+                  <div id="controls" class="mt-3 field is-grouped is-grouped-multiline">
+                  <div class="control is-flex is-align-items-center">
+                    <span class="mr-2 is-size-7">Mode:</span>
+                    <label class="radio is-size-7 mr-3">
+                      <input type="radio" name="gen-mode" id="mode-generation" value="generation" checked />
+                      Generation
+                    </label>
+                    <label class="radio is-size-7">
+                      <input type="radio" name="gen-mode" id="mode-completion" value="completion" />
+                      Completion
+                    </label>
+                  </div>
+                  <div class="control is-flex is-align-items-center">
+                    <label for="example-class" class="mr-2 is-size-7">Class:</label>
+                    <div class="select is-small" id="class-select-wrapper">
+                      <select id="example-class" name="example-class">
+                        {% for c in demo_classes %}
+                          <option value="{{ c }}" data-index="{{ loop.index0 }}">{{ c }}</option>
+                        {% endfor %}
+                      </select>
+                    </div>
+                  </div>
+                  <div class="control">
+                    <button id="clear" class="button is-small is-danger" type="button">Clear</button>
+                    <button id="generate" class="button is-small is-primary" type="button" onclick="updateSVG()">Generate</button>
+                  </div>
+                </div>
+                  <div id="canvas-container" class="box"></div>
+              </div>
+              <div id="svg-pane">
+                <h3 class="title is-5 has-text-centered">Output</h3>
+                <div id="svg-output" class="box has-background-light">
+                  (draw something to see SVG)
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="content">
+        <div class="columns is-centered">
+          <div class="column is-half">
+            <h2>More Examples</h2>
+            <p>TODO</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container">
+        <div class="content">
+          <div class="section-title has-text-centered is-centered">
+            <h2>Our Approach</h2>
+            <br />
+          </div>
+          <div class="columns is-centered is-variable is-6 has-text-centered">
+            <div class="column is-one-third has-text-centered">
+              <h2 class="title is-3">Representation</h2>
+              <img id="rep" src="TODO" alt="representation" />
+              <div class="content has-text-justified">{{ representation | safe }}</div>
+            </div>
+            <div class="column is-one-third has-text-centered">
+              <h2 class="title is-3">Model</h2>
+              <img id="network" src="TODO" alt="model" />
+              <div class="content has-text-justified">{{ model | safe }}</div>
+            </div>
+            <div class="column is-one-third has-text-centered">
+              <h2 class="title is-3">Training</h2>
+              <img id="pipe" src="TODO" alt="training" />
+              <div class="content has-text-justified">{{ training | safe }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <footer class="footer">
+      <div class="content has-text-centered">
+        <p>&copy; 2025 {{ site_title }} · {% if code_url %}<a href="{{ code_url }}" target="_blank" rel="noopener">Source Code</a>{% endif %}</p>
+      </div>
+    </footer>
+    <script src="{{ url_for('static', filename='js/demo.js') }}"></script>
+  </body>
+</html>

@@ -6,10 +6,33 @@ let bins = 16;
 let showKeyPoints = false;
 let lastTime = new Date();
 let tokenizer;
+let currentMode = "generation";
+
+function applyModeUI() {
+  const container = document.getElementById("canvas-container");
+  const genRadio = document.getElementById("mode-generation");
+  const shouldHide = genRadio && genRadio.checked;
+  if (container) {
+    if (shouldHide) {
+      container.classList.add("is-hidden");
+    } else {
+      container.classList.remove("is-hidden");
+    }
+  }
+  currentMode = shouldHide ? "generation" : "completion";
+}
+
+function getClassLabel() {
+  const select = document.getElementById("example-class");
+  const opt = select.options[select.selectedIndex];
+  const idxAttr = opt.getAttribute("data-index");
+  const parsed = parseInt(idxAttr, 10);
+  return parsed;
+}
 
 function setup() {
-  const width = 512;
-  const height = 512;
+  const width = 384;
+  const height = 384;
   let cnv = createCanvas(width, height);
   cnv.parent("canvas-container");
   background(255);
@@ -17,11 +40,18 @@ function setup() {
   strokeWeight(2);
   noFill();
   tokenizer = new DeltaPenPositionTokenizer(bins, width, height);
+  // Hook up mode radios
+  const genRadio = document.getElementById("mode-generation");
+  const compRadio = document.getElementById("mode-completion");
+  if (genRadio) genRadio.addEventListener("change", applyModeUI);
+  if (compRadio) compRadio.addEventListener("change", applyModeUI);
+  // Apply initial mode state
+  applyModeUI();
   document.getElementById("clear").onclick = () => {
     lines = [];
     background(255);
     const container = document.getElementById("svg-output");
-    container.innerHTML = "(draw something to see SVG)";
+    container.innerHTML = "(generate something to see output)";
     container.classList.remove("svg-grid");
     delete container.dataset.initialized;
   };
@@ -112,65 +142,95 @@ function drawKeyPoints(points) {
 }
 
 async function modelExample(tokens) {
-  if (typeof session === "undefined" || session == null) {
+  const eosId = tokenizer.vocab.get("END");
+  const classLabel = getClassLabel();
+  const start_tokens = tokens.slice(0, -1);
+
+  const body = {
+    start_tokens: start_tokens,
+    eos_id: eosId,
+    class_label: classLabel,
+  };
+  console.log("Request body:", body);
+
+  const response = await fetch("/sample", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!response.ok) {
+    console.error("Error from model:", await response.text());
     return tokens;
   }
 
-  const tokenizerEosId = tokenizer.vocab.get("END");
-
-  const classLabel = 0;
-  const eosId = tokenizerEosId;
-
-  return sampleTokens(tokens, classLabel, eosId);
+  const data = await response.json();
+  return data.tokens;
 }
 
 async function updateSVG() {
-  const strokes = lines.map((l) => l.map((p) => [p.x, p.y]));
-  const tokens = tokenizer.encode(strokes);
-  const modelTokens = await modelExample(tokens);
-
-  if (!Array.isArray(modelTokens)) {
-    console.error("Model tokens not an array; falling back to input tokens.");
-    return; // Avoid calling decode with invalid input
+  const genBtn = document.getElementById("generate");
+  if (genBtn) {
+    genBtn.disabled = true;
+    genBtn.classList.add("is-loading");
+    genBtn.setAttribute("aria-busy", "true");
   }
-  const svg = tokenizer.decode(modelTokens);
-  const container = document.getElementById("svg-output");
-  // Initialize grid, first time (remove placeholder text)
-  if (!container.dataset.initialized) {
-    container.innerHTML = "";
-    container.classList.add("svg-grid");
-    container.dataset.initialized = "true";
+
+
+  try {
+    const strokes = lines.map((l) => l.map((p) => [p.x, p.y]));
+    const tokens = tokenizer.encode(strokes);
+    const modelTokens = await modelExample(tokens);
+    const svg = tokenizer.decode(modelTokens);
+    const container = document.getElementById("svg-output");
+    // Initialize grid, first time (remove placeholder text)
+    if (!container.dataset.initialized) {
+      container.innerHTML = "";
+      container.classList.add("svg-grid");
+      container.dataset.initialized = "true";
+    }
+    // Wrapper grid cell for the new SVG
+    const cell = document.createElement("div");
+    cell.className = "svg-item";
+    // Insert SVG content
+    cell.innerHTML = svg;
+
+    // Add a download button overlay
+    const dlBtn = document.createElement("button");
+    dlBtn.type = "button";
+    dlBtn.className = "svg-download-btn";
+    dlBtn.title = "Download SVG";
+    dlBtn.setAttribute("aria-label", "Download SVG");
+    dlBtn.innerHTML = "⤓";
+
+    dlBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const filename = `sketch_${new Date().toISOString().replace(/[:.]/g, "-")}.svg`;
+      const blob = new Blob([svg], { type: "image/svg+xml;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    });
+
+    cell.appendChild(dlBtn);
+    container.appendChild(cell);
+  } catch (err) {
+    console.error("Generate failed:", err);
+    alert("Error during generation. Inference server may be unavailable.");
+  } finally {
+    if (genBtn) {
+      genBtn.disabled = false;
+      genBtn.classList.remove("is-loading");
+      genBtn.removeAttribute("aria-busy");
+    }
   }
-  // Wrapper grid cell for the new SVG
-  const cell = document.createElement("div");
-  cell.className = "svg-item";
-  // Insert SVG content
-  cell.innerHTML = svg;
-
-  // Add a download button overlay
-  const dlBtn = document.createElement("button");
-  dlBtn.type = "button";
-  dlBtn.className = "svg-download-btn";
-  dlBtn.title = "Download SVG";
-  dlBtn.setAttribute("aria-label", "Download SVG");
-  dlBtn.innerHTML = "⤓"; // simple download glyph
-
-  dlBtn.addEventListener("click", (e) => {
-    e.stopPropagation();
-    const filename = `sketch_${new Date().toISOString().replace(/[:.]/g, "-")}.svg`;
-    const blob = new Blob([svg], { type: "image/svg+xml;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
-  });
-
-  cell.appendChild(dlBtn);
-  container.appendChild(cell);
 }
 
 class DeltaPenPositionTokenizer {
@@ -528,112 +588,4 @@ function bezierArrayToSVG(beziers) {
   }
 
   return cmds.join(" ");
-}
-
-// Sampling logic with temperature, top-k, top-p
-function softmax(logits) {
-  const max = Math.max(...logits);
-  const exp = logits.map((v) => Math.exp(v - max));
-  const sum = exp.reduce((a, b) => a + b, 0);
-  return exp.map((v) => v / sum);
-}
-
-function argmax(arr) {
-  return arr.indexOf(Math.max(...arr));
-}
-
-function sampleMultinomial(probs) {
-  const r = Math.random();
-  let cum = 0;
-  for (let i = 0; i < probs.length; i++) {
-    cum += probs[i];
-    if (r < cum) return i;
-  }
-  return probs.length - 1;
-}
-
-function topK(logits, k) {
-  if (k <= 0) return logits;
-
-  const sorted = [...logits]
-    .map((v, i) => [v, i])
-    .sort((a, b) => b[0] - a[0])
-    .slice(0, k)
-    .map((e) => e[1]);
-
-  return logits.map((v, i) => (sorted.includes(i) ? v : -1e10));
-}
-
-function topP(logits, p) {
-  const sorted = [...logits].map((v, i) => [v, i]).sort((a, b) => b[0] - a[0]);
-
-  let cum = 0;
-  const keep = [];
-
-  for (const [logit, idx] of sorted) {
-    const exp = Math.exp(logit);
-    cum += exp;
-    keep.push(idx);
-    if (cum >= p) break;
-  }
-
-  return logits.map((v, i) => (keep.includes(i) ? v : -1e10));
-}
-
-async function sampleTokens(
-  tokens,
-  classLabel,
-  eosId,
-  { temperature = 0.8, top_k = 20, top_p = 0.7, greedy = false, max_len = 200 } = {}
-) {
-  // Keep the original part of sequence before padding
-  let start_idx = tokens.length;
-
-  // pop the last token if it's EOS
-  if (tokens[tokens.length - 1] === eosId) {
-    tokens = tokens.slice(0, -1);
-    start_idx -= 1;
-  }
-
-  while (tokens.length < max_len) {
-    tokens.push(tokenizer.vocab.get("PAD"));
-  }
-
-  for (let step = start_idx; step < max_len; step++) {
-    const tokenData = BigInt64Array.from(tokens.map((t) => BigInt(t)));
-    const inputTokens = new ort.Tensor("int64", tokenData, [1, tokens.length]);
-
-    const labelData = BigInt64Array.from([BigInt(classLabel)]);
-    const inputClass = new ort.Tensor("int64", labelData, [1]);
-
-    let output;
-    try {
-      output = await session.run({
-        input_ids: inputTokens,
-        class_labels: inputClass
-      });
-    } catch (err) {
-      console.error("ONNX inference failed:", err);
-      break;
-    }
-
-    const logitsTensor = output.logits;
-    const vocab = logitsTensor.dims[2];
-    const floatLogits = logitsTensor.data.slice(step * vocab, (step + 1) * vocab);
-
-    let logits = Array.from(floatLogits, Number);
-    logits = logits.map((v) => v / temperature);
-    logits = topK(logits, top_k);
-    logits = topP(logits, top_p);
-    const probs = softmax(logits);
-    let nextToken = greedy ? argmax(probs) : sampleMultinomial(probs);
-    tokens[step] = nextToken;
-
-    // TODO: fix always predicts PAD
-    console.log(`Step ${step}: sampled token ${nextToken}`);
-
-    if (nextToken === eosId) break;
-  }
-
-  return tokens;
 }

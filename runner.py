@@ -315,37 +315,6 @@ class SketchTrainer:
         with open(os.path.join(self.log_dir_entry, "hparams.json"), "w") as f:
             json.dump(self.hparams, f, indent=4)
 
-    def export_onnx(self, onnx_path):
-        """Export the trained model to ONNX format."""
-        dummy_tokens = torch.randint(
-            low=0,
-            high=self.model.vocab_size,
-            size=(1, self.model.max_len),
-            dtype=torch.long,
-            device=device
-        )
-
-        dummy_class = torch.tensor(
-            [0],
-            dtype=torch.long,
-            device=device
-        )
-
-        torch.onnx.export(
-            self.model,
-            (dummy_tokens, dummy_class),
-            onnx_path,
-            input_names=["input_ids", "class_labels"],
-            output_names=["logits"],
-            dynamic_axes={
-                "input_ids":   {0: "batch_size", 1: "sequence_length"},
-                "class_labels": {0: "batch_size"},
-                "logits":      {0: "batch_size", 1: "sequence_length"},
-            },
-            opset_version=17,
-        )
-        print(f"Model exported to ONNX format at: {onnx_path}")
-
 
 # Note: sampling could be batched for effiecently generating multiple samples at once
 def sample(

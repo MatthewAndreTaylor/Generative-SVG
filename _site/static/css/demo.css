@@ -68,7 +68,7 @@
 
 #svg-pane {
   background: #fff;
-  overflow: auto;
+  overflow: visible;
 }
 
 #svg-output svg {
