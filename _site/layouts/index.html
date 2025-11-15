@@ -77,7 +77,7 @@
                     <div class="select is-small" id="class-select-wrapper">
                       <select id="example-class" name="example-class">
                         {{ range $i, $class := .Site.Params.demo_classes }}
-                          <option value="{{ $class }}">{{ $class }}</option>
+                          <option value="{{ $class }}" data-index="{{ $i }}">{{ $class }}</option>
                         {{ end }}
                       </select>
                     </div>
