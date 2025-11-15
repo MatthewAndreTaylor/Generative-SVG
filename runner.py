@@ -69,7 +69,7 @@ class SketchTrainer:
 
         # Logging hyperparameter setup
         self.hparams = {
-            "classes": dataset.label_names,
+            "classes": ",".join(dataset.label_names),
             "model": model.__class__.__name__,
             "n_layers": model.num_layers,
             "d_model": model.d_model,

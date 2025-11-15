@@ -118,3 +118,10 @@ def test(sketch_trainer: SketchTrainer):
 
     print(f"Test FID: {fid_score:.4f}")
     print(f"Test Inception Score: mean={is_mean:.4f}, std={is_std:.4f}")
+
+
+if __name__ == "__main__":
+    from main import load_config, SketchTrainer
+
+    trainer = load_config("configs/example_0.toml")
+    test(trainer)
