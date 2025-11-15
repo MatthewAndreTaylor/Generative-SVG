@@ -31,7 +31,9 @@ def add_hparams(writer, param_dict, metrics_dict):
 
 
 class SketchTrainer:
-    def __init__(self, model, dataset: BaseSketchDataset, tokenizer, training_config: dict):
+    def __init__(
+        self, model, dataset: BaseSketchDataset, tokenizer, training_config: dict
+    ):
         self.training_config = training_config
         self.model = model.to(device)
         self.tokenizer = tokenizer
@@ -309,10 +311,10 @@ class SketchTrainer:
     def save(self, epoch):
         """Save the trained model to disk."""
         torch.save(self.model, os.path.join(self.log_dir_entry, f"model_{epoch}.pt"))
-        
+
         with open(os.path.join(self.log_dir_entry, "hparams.json"), "w") as f:
             json.dump(self.hparams, f, indent=4)
-            
+
     def export_onnx(self, onnx_path):
         """Export the trained model to ONNX format."""
         input_ids, _, class_labels = next(iter(self.train_loader))
