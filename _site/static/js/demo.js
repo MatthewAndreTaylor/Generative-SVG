@@ -459,3 +459,96 @@ function bezierArrayToSVG(beziers) {
 
   return cmds.join(" ");
 }
+
+// Sampling logic with temperature, top-k, top-p
+function softmax(logits) {
+  const max = Math.max(...logits);
+  const exp = logits.map(v => Math.exp(v - max));
+  const sum = exp.reduce((a, b) => a + b, 0);
+  return exp.map(v => v / sum);
+}
+
+function argmax(arr) {
+  return arr.indexOf(Math.max(...arr));
+}
+
+function sampleMultinomial(probs) {
+  const r = Math.random();
+  let cum = 0;
+  for (let i = 0; i < probs.length; i++) {
+    cum += probs[i];
+    if (r < cum) return i;
+  }
+  return probs.length - 1;
+}
+
+function topK(logits, k) {
+  if (k <= 0) return logits;
+
+  const sorted = [...logits].map((v, i) => [v, i])
+    .sort((a, b) => b[0] - a[0])
+    .slice(0, k)
+    .map(e => e[1]);
+
+  return logits.map((v, i) => sorted.includes(i) ? v : -1e10);
+}
+
+function topP(logits, p) {
+  const sorted = [...logits].map((v, i) => [v, i])
+    .sort((a, b) => b[0] - a[0]);
+
+  let cum = 0;
+  const keep = [];
+
+  for (const [logit, idx] of sorted) {
+    const exp = Math.exp(logit);
+    cum += exp;
+    keep.push(idx);
+    if (cum >= p) break;
+  }
+
+  return logits.map((v, i) => keep.includes(i) ? v : -1e10);
+}
+
+async function sampleTokens(
+  tokens,
+  classLabel,
+  eosId,
+  {
+    temperature = 0.8,
+    top_k = 20,
+    top_p = 0.7,
+    greedy = false,
+    max_len = 200
+  } = {}
+) {
+  while (tokens.length < max_len) {
+    // ONNX expects int64
+    const tokenData = BigInt64Array.from(tokens.map(t => BigInt(t)));
+    const labelData = BigInt64Array.from([BigInt(classLabel)]);
+
+    const inputTokens = new ort.Tensor("int64", tokenData, [1, tokens.length]);
+    const inputClass  = new ort.Tensor("int64", labelData, [1]);
+
+    const output = await session.run({
+      "tokens": inputTokens,
+      "class_label": inputClass
+    });
+
+    const logits = output.logits.data;
+    const vocab = output.logits.dims[2];
+    let nextLogits = logits.slice(-vocab);
+    nextLogits = nextLogits.map(v => v / temperature);
+    nextLogits = topK(nextLogits, top_k);
+    nextLogits = topP(nextLogits, top_p);
+    const probs = softmax(nextLogits);
+    const nextToken = greedy ? argmax(probs) : sampleMultinomial(probs);
+    tokens.push(nextToken);
+
+    if (nextToken === eosId){
+      break;
+    }
+  }
+
+  return tokens;
+}
