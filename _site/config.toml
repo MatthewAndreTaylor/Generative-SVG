@@ -1,8 +1,3 @@
-baseURL = 'https://example.org/'
-languageCode = 'en-us'
-title = 'Conditional Sketch Generation & Completion'
-
-
 [[params.authors]]
 name = "Matthew Taylor"
 url  = "https://matthewandretaylor.github.io"
@@ -11,14 +6,21 @@ url  = "https://matthewandretaylor.github.io"
 name = "Sebastian Tasson"
 url  = "https://github.com/tassonse"
 
+
+[[params.models]]
+tag = "small"
+checkpoint = "model_checkpoint_small.pt"
+labels = ["bird", "crab", "guitar"]
+
+[[params.models]]
+tag = "medium"
+checkpoint = "model_checkpoint_medium.pt"
+labels = ["cake", "butterfly", "flower", "mug", "sea turtle"]
+
 [params]
+title = 'Conditional Sketch Generation & Completion'
 pdf_url  = "static/paper.pdf"
 code_url = "https://github.com/MatthewAndreTaylor/Generative-SVG"
-
-
-demo_classes = ["bird", "crab", "guitar"]
-# demo_classes = ["cat", "dog", "bird", "fish", "crab", "guitar", "sailboat", "bulldozer", "apple", "monkey", "skull", "whale"]
-
 
 abstract = """
 Existing sketch generation models rely on hand-crafted stroke representations that are not very generalizable across datasets or drawing styles, and train multiple models to generate sketches over different object classes.

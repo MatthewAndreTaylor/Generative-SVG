@@ -1,8 +1,6 @@
-# add parent directory to sys.path for imports
 import sys
 import os
 
-# Ensure parent project root is on sys.path regardless of CWD
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if PROJECT_ROOT not in sys.path:
     sys.path.append(PROJECT_ROOT)
@@ -11,58 +9,47 @@ import torch
 import torch.nn.functional as F
 from flask import Flask, request, jsonify, render_template
 from utils import top_k_filtering, top_p_filtering
-import os
-import tomllib as toml_loader
+import tomllib
 
-# Device & model loading
-# device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-device = torch.device("cpu")
+# Note the device on the hosting site may not have a GPU 
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-try:
-    model = torch.load("model_checkpoint.pt", map_location=device, weights_only=False)
-except FileNotFoundError:
-    model = None  # Will handle in endpoint
-    print("Model checkpoint not found, running without model.")
+site_config = {}
+loaded_models = {}
 
+with open("config.toml", "rb") as f:
+    site_config = tomllib.load(f).get("params", {})
 
-def load_site_config(path: str = "config.toml"):
-    """Load Hugo-style config.toml and adapt to a dict for Jinja.
-
-    Returns minimal dictionary if file or parser unavailable.
-    """
-    if toml_loader is None or not os.path.isfile(path):
-        return {
-            "title": "Generative SVG",
-            "authors": [],
-            "pdf_url": None,
-            "code_url": None,
-            "demo_classes": ["bird", "crab", "guitar"],
-            "abstract": "(abstract unavailable)",
-            "representation": "(representation text)",
-            "model": "(model description)",
-            "training": "(training description)",
-        }
-    with open(path, "rb") as f:
-        raw = toml_loader.load(f)
-
-    params = raw.get("params", {})
-    authors = params.get("authors", [])
-    return {
-        "site_title": raw.get("title", "Generative SVG"),
-        "title": raw.get("title", "Generative SVG"),  # page title reuse
-        "authors": authors,
-        "pdf_url": params.get("pdf_url"),
-        "code_url": params.get("code_url"),
-        "demo_classes": params.get("demo_classes", ["bird", "crab", "guitar"]),
-        "abstract": params.get("abstract", ""),
-        "representation": params.get("representation", ""),
-        "model": params.get("model", ""),
-        "training": params.get("training", ""),
-    }
+for model_info in site_config.get("models", []):
+    checkpoint_path = model_info.get("checkpoint")
+    model_tag = model_info.get("tag")
+    try:
+        loaded_models[model_tag] = torch.load(checkpoint_path, map_location=device, weights_only=False)
+    except Exception as e:
+        loaded_models[model_tag] = None
+        print(f"Loading model checkpoint {checkpoint_path} failed: {e}. Running without model.")
 
 
-site_config = load_site_config()
 app = Flask(__name__)
+
+# TODO: use google drive to host examples, store file metadata in json
+def find_examples(root: str = os.path.join("static", "examples")):
+    """Scan static examples directory and group example sketch paths."""
+    groups = []
+    for name in sorted(os.listdir(root), reverse=True):
+        group_path = os.path.join(root, name)
+        if not os.path.isdir(group_path):
+            continue
+        images = []
+        for fn in os.listdir(group_path):
+            if fn.lower().endswith(".svg"):
+                images.append(os.path.join("examples", name, fn).replace("\\", "/"))
+        if images:
+            groups.append({
+                "id": name,
+                "images": images,
+            })
+    return groups
 
 
 def sample(
@@ -115,29 +102,18 @@ def sample(
 
 @app.route("/", methods=["GET"])
 def index():
-    """Render main page using Jinja template."""
+    """Render main page."""
     return render_template(
         "index.html",
-        title=site_config.get("title"),
-        site_title=site_config.get("site_title", site_config.get("title")),
-        authors=site_config.get("authors", []),
-        pdf_url=site_config.get("pdf_url"),
-        code_url=site_config.get("code_url"),
-        demo_classes=site_config.get("demo_classes", []),
-        abstract=site_config.get("abstract", ""),
-        representation=site_config.get("representation", ""),
-        model=site_config.get("model", ""),
-        training=site_config.get("training", ""),
+        **site_config,
+        examples=find_examples(),
     )
 
 
 @app.route("/sample", methods=["POST"])
 def sample_endpoint():
-    if model is None:
-        return jsonify({"error": "Model checkpoint not found."}), 500
-
+    """API endpoint to generate token sequences."""
     data = request.get_json(force=True) or {}
-
     start_tokens = data.get("start_tokens")
     eos_id = data.get("eos_id")
     class_label = data.get("class_label", 0)
@@ -145,7 +121,12 @@ def sample_endpoint():
     top_k = data.get("top_k", 20)
     top_p = data.get("top_p", 0.7)
 
-    # Basic validation
+    req_model = data.get("model")
+    inference_model = loaded_models.get(req_model)
+
+    if inference_model is None:
+        return jsonify({"error": "No inference model is available on the server."}), 503
+
     if not isinstance(start_tokens, list) or not all(
         isinstance(x, int) for x in start_tokens
     ):
@@ -153,12 +134,12 @@ def sample_endpoint():
     if not isinstance(eos_id, int):
         return jsonify({"error": "eos_id must be an integer"}), 400
 
-    if not isinstance(class_label, int) or not (0 <= class_label < model.num_classes):
+    if not isinstance(class_label, int) or not (0 <= class_label < inference_model.num_classes):
         return jsonify({"error": "class_label must be an integer in [0, num_classes-1]"}), 400
 
     try:
         tokens = sample(
-            model,
+            inference_model,
             start_tokens=start_tokens,
             eos_id=eos_id,
             temperature=temperature,
@@ -173,4 +154,4 @@ def sample_endpoint():
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+    app.run(host="0.0.0.0", port=5000, debug=True)

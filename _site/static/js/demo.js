@@ -3,10 +3,13 @@ let currentLine = [];
 let isDrawing = false;
 let tolerance = 2.0;
 let bins = 16;
+const width = 384;
+const height = 384;
+
 let showKeyPoints = false;
 let lastTime = new Date();
 let tokenizer;
-let currentMode = "generation";
+var currentMode = "generation";
 
 function applyModeUI() {
   const container = document.getElementById("canvas-container");
@@ -30,9 +33,14 @@ function getClassLabel() {
   return parsed;
 }
 
+function getSelectedModel() {
+  const sel = document.getElementById("model-select");
+  if (sel && sel.value) return sel.value;
+  if (window.SELECTED_MODEL) return window.SELECTED_MODEL;
+  return "small";
+}
+
 function setup() {
-  const width = 384;
-  const height = 384;
   let cnv = createCanvas(width, height);
   cnv.parent("canvas-container");
   background(255);
@@ -69,6 +77,7 @@ function draw() {
   }
 }
 
+
 function mousePressed() {
   if (mouseX >= 0 && mouseX <= width && mouseY >= 0 && mouseY <= height) {
     isDrawing = true;
@@ -92,15 +101,15 @@ function mouseDragged() {
 function mouseReleased() {
   if (isDrawing) {
     isDrawing = false;
-    let simplified = rdpSimplify(currentLine, tolerance);
+    const simplified = rdpSimplify(currentLine, tolerance);
     lines.push(simplified);
   }
 }
 
 function rdpSimplify(points, epsilon) {
   if (points.length < 3) return points;
-  let dmax = 0,
-    index = 0;
+  let dmax = 0;
+  let index = 0;
   const start = points[0];
   const end = points[points.length - 1];
   for (let i = 1; i < points.length - 1; i++) {
@@ -144,21 +153,22 @@ function drawKeyPoints(points) {
 async function modelExample(tokens) {
   const eosId = tokenizer.vocab.get("END");
   const classLabel = getClassLabel();
-  const start_tokens = tokens.slice(0, -1);
+  const start_tokens =
+    currentMode === "completion" ? tokens.slice(0, -1) : [tokenizer.vocab.get("START")];
 
   const body = {
     start_tokens: start_tokens,
     eos_id: eosId,
     class_label: classLabel,
+    model: getSelectedModel()
   };
-  console.log("Request body:", body);
 
   const response = await fetch("/sample", {
     method: "POST",
     headers: {
-      "Content-Type": "application/json",
+      "Content-Type": "application/json"
     },
-    body: JSON.stringify(body),
+    body: JSON.stringify(body)
   });
 
   if (!response.ok) {
@@ -178,7 +188,6 @@ async function updateSVG() {
     genBtn.setAttribute("aria-busy", "true");
   }
 
-
   try {
     const strokes = lines.map((l) => l.map((p) => [p.x, p.y]));
     const tokens = tokenizer.encode(strokes);
@@ -194,7 +203,6 @@ async function updateSVG() {
     // Wrapper grid cell for the new SVG
     const cell = document.createElement("div");
     cell.className = "svg-item";
-    // Insert SVG content
     cell.innerHTML = svg;
 
     // Add a download button overlay
@@ -256,10 +264,8 @@ class DeltaPenPositionTokenizer {
   }
   quantizeLine(points) {
     const bins = this.bins;
-    const width = this.width;
-    const height = this.height;
-    const scaleX = (bins - 1) / width;
-    const scaleY = (bins - 1) / height;
+    const scaleX = (bins - 1) / this.width;
+    const scaleY = (bins - 1) / this.height;
     return points.map(([x, y]) => {
       let qx = x * scaleX;
       let qy = y * scaleY;
@@ -293,15 +299,14 @@ class DeltaPenPositionTokenizer {
     tokens.push(this.vocab.get("END"));
     return tokens;
   }
-  decode(tokens, strokeWidth = 0.4) {
+  decode(tokens, strokeWidth = 0.3) {
     const svgParts = [
       `<svg viewBox="0 0 ${this.bins} ${this.bins}" xmlns="http://www.w3.org/2000/svg"><g stroke-width="${strokeWidth}">`
     ];
-
     let strokes = [];
     let currentStroke = [];
-    let x = 0,
-      y = 0;
+    let x = 0;
+    let y = 0;
 
     for (let token of tokens) {
       const item = this.invVocab.get(token);
@@ -325,7 +330,6 @@ class DeltaPenPositionTokenizer {
 
     if (currentStroke.length > 0) strokes.push(currentStroke);
 
-    // strokes → Béziers → SVG
     for (let stroke of strokes) {
       const sampled = resampleStroke(stroke, 20); // like num_samples=20
       const beziers = fitCurve(sampled, 1.0); // like maxError
@@ -354,7 +358,6 @@ function resampleStroke(points, numSamples = 20) {
   const resampled = [];
   for (let i = 0; i < numSamples; i++) {
     const t = i / (numSamples - 1);
-    // find segment where u[k] <= t <= u[k+1]
     let k = 0;
     while (k < u.length - 2 && u[k + 1] < t) k++;
     const tSeg = (t - u[k]) / (u[k + 1] - u[k] || 1);
@@ -364,7 +367,7 @@ function resampleStroke(points, numSamples = 20) {
   return resampled;
 }
 
-// This does a greedy fit of cubic Bezier curves to a set of points
+// Greedy fit of cubic Bezier curves to a set of points
 function dot(a, b) {
   return a.x * b.x + a.y * b.y;
 }
@@ -467,7 +470,6 @@ function computeMaxError(points, bez, u) {
 
 function generateBezier(points, u, leftTangent, rightTangent) {
   const bez = [points[0], null, null, points[points.length - 1]];
-
   let C = [
     [0, 0],
     [0, 0]
@@ -562,21 +564,15 @@ function fitCubic(points, leftTangent, rightTangent, error) {
 }
 
 function fitCurve(points, error) {
-  // Same idea as the Python fitCurve: pick end tangents and recurse with fitCubic
   if (!points || points.length < 2) return [];
-
-  // Approximate left and right tangents from endpoints
   const leftTangent = normalize(sub(points[1], points[0]));
   const rightTangent = normalize(sub(points[points.length - 2], points[points.length - 1]));
-
   return fitCubic(points, leftTangent, rightTangent, error);
 }
 
 function bezierArrayToSVG(beziers) {
   if (!beziers || beziers.length === 0) return "";
-
   const cmds = [];
-  // Move to first point of first segment
   const first = beziers[0][0];
   cmds.push(`M ${first.x} ${first.y}`);
 
