@@ -32,13 +32,18 @@ We train a lightweight transformer model with an added class embedding layer to 
 """
 
 representation = """
-We represent a sketch as a sequence of strokes. Each stroke
+We represent a sketch as a sequence of strokes. Each stroke is quantized and encoded as a discrete token using a fix-sized codebook.
+This representation captures both the temporal and structural information present in human-drawn sketches, allowing our model to generate realistic and coherent sketches.
 """
 
 model = """
-Our model is a transformer-based architecture ...
+We designed our model ourselves it is based on a transformer architecture, but does not follow any existing implementation.
+In addition, the class embedding allows the model to condition its generation on specific object classes, enabling it to generate sketches of different types using a single model.
+We use fewer layers and attention heads compared to standard transformer architectures to keep the model lightweight.
 """
 
 training = """
-We train our model using cross-entropy loss, and the AdamW optimizer ...
+As training input we use the tokenized sketch representation along with a class embedding.
+We train our model using Cross-entropy loss, and the AdamW optimizer.
+This way we can effectively learn the distribution of sketch tokens and generate sketch sequences based on the learned patterns.
 """
