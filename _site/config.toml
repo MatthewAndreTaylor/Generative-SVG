@@ -32,7 +32,7 @@ We train a lightweight transformer model with an added class embedding layer to 
 """
 
 representation = """
-We represent a sketch as a sequence of strokes ...
+We represent a sketch as a sequence of strokes. Each stroke
 """
 
 model = """
@@ -40,5 +40,5 @@ Our model is a transformer-based architecture ...
 """
 
 training = """
-We train our model on the Google Quick, Draw! dataset ...
+We train our model using cross-entropy loss, and the AdamW optimizer ...
 """
