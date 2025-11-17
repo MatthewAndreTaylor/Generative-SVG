@@ -43,7 +43,7 @@ We use fewer layers and attention heads compared to standard transformer archite
 """
 
 training = """
-As training input we use the tokenized sketch representation along with a class embedding.
+As training input we use the tokenized sketch along with an integer class label.
 We train our model using Cross-entropy loss, and the AdamW optimizer.
 This way we can effectively learn the distribution of sketch tokens and generate sketch sequences based on the learned patterns.
 """
