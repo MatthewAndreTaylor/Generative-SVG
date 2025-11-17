@@ -32,7 +32,6 @@ for model_info in site_config.get("models", []):
 
 app = Flask(__name__)
 
-# TODO: use google drive to host examples, store file metadata in json
 def find_examples(root: str = os.path.join("static", "examples")):
     """Scan static examples directory and group example sketch paths."""
     groups = []
@@ -154,4 +153,4 @@ def sample_endpoint():
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    app.run(host="0.0.0.0", port=5000)
