@@ -1,2 +1,4 @@
 Flask
 torch
+
+# Note webserver only has 512mb of disk space use smaller versions of torch

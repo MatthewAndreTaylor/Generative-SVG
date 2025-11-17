@@ -8,10 +8,9 @@ if PROJECT_ROOT not in sys.path:
 import torch
 import torch.nn.functional as F
 from flask import Flask, request, jsonify, render_template
-from utils import top_k_filtering, top_p_filtering
 import tomllib
 
-# Note the device on the hosting site may not have a GPU 
+# Note the device on the hosting site may not have a GPU
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 site_config = {}
@@ -49,6 +48,33 @@ def find_examples(root: str = os.path.join("static", "examples")):
                 "images": images,
             })
     return groups
+
+
+def top_p_filtering(logits, p=0.9):
+    """
+    Apply top-p (nucleus) filtering to the logits.
+    """
+    sorted_logits, sorted_indices = torch.sort(logits, descending=True)
+    cumulative_probs = torch.cumsum(F.softmax(sorted_logits, dim=-1), dim=-1)
+    sorted_indices_to_remove = cumulative_probs > p
+    sorted_indices_to_remove[..., 1:] = sorted_indices_to_remove[..., :-1].clone()
+    sorted_indices_to_remove[..., 0] = False
+    indices_to_remove = sorted_indices[sorted_indices_to_remove]
+    logits[:, indices_to_remove] = -float("Inf")
+    return logits
+
+
+def top_k_filtering(logits, k):
+    """
+    Apply top-k filtering to the logits.
+    """
+    if k <= 0:
+        return logits
+    top_k = min(k, logits.size(-1))
+    values, _ = torch.topk(logits, top_k)
+    min_values = values[:, -1].unsqueeze(-1)
+    logits[logits < min_values] = -float("Inf")
+    return logits
 
 
 def sample(
