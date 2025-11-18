@@ -23,13 +23,18 @@ for model_info in site_config.get("models", []):
     checkpoint_path = model_info.get("checkpoint")
     model_tag = model_info.get("tag")
     try:
-        loaded_models[model_tag] = torch.load(checkpoint_path, map_location=device, weights_only=False)
+        loaded_models[model_tag] = torch.load(
+            checkpoint_path, map_location=device, weights_only=False
+        )
     except Exception as e:
         loaded_models[model_tag] = None
-        print(f"Loading model checkpoint {checkpoint_path} failed: {e}. Running without model.")
+        print(
+            f"Loading model checkpoint {checkpoint_path} failed: {e}. Running without model."
+        )
 
 
 app = Flask(__name__)
+
 
 def find_examples(root: str = os.path.join("static", "examples")):
     """Scan static examples directory and group example sketch paths."""
@@ -43,10 +48,12 @@ def find_examples(root: str = os.path.join("static", "examples")):
             if fn.lower().endswith(".svg"):
                 images.append(os.path.join("examples", name, fn).replace("\\", "/"))
         if images:
-            groups.append({
-                "id": name,
-                "images": images,
-            })
+            groups.append(
+                {
+                    "id": name,
+                    "images": images,
+                }
+            )
     return groups
 
 
@@ -159,8 +166,13 @@ def sample_endpoint():
     if not isinstance(eos_id, int):
         return jsonify({"error": "eos_id must be an integer"}), 400
 
-    if not isinstance(class_label, int) or not (0 <= class_label < inference_model.num_classes):
-        return jsonify({"error": "class_label must be an integer in [0, num_classes-1]"}), 400
+    if not isinstance(class_label, int) or not (
+        0 <= class_label < inference_model.num_classes
+    ):
+        return (
+            jsonify({"error": "class_label must be an integer in [0, num_classes-1]"}),
+            400,
+        )
 
     try:
         tokens = sample(

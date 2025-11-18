@@ -169,7 +169,7 @@ class SketchTrainer:
             all_preds = []
 
             with torch.no_grad():
-                for input_ids, target_ids, _ in tqdm(
+                for input_ids, target_ids, class_labels in tqdm(
                     val_loader, desc=f"Epoch {epoch+1}/{num_epochs} [val]"
                 ):
                     input_ids = input_ids.to(device)
@@ -316,7 +316,6 @@ class SketchTrainer:
             json.dump(self.hparams, f, indent=4)
 
 
-# Note: sampling could be batched for effiecently generating multiple samples at once
 def sample(
     model,
     start_tokens,
@@ -355,3 +354,73 @@ def sample(
         tokens_tensor = torch.cat([tokens_tensor, next_token_tensor], dim=1)
 
     return tokens
+
+
+def sample_batch(
+    model,
+    start_tokens,
+    eos_id,
+    temperature=0.8,
+    top_k=20,
+    top_p=0.7,
+    greedy=False,
+    class_label=None,
+):
+    """
+    Autoregressive batch sampling from the model given a starting token sequence.
+
+    start_tokens: list of lists, or tensor (B, T0)
+    class_label: tensor (B,)
+    """
+    model.eval()
+
+    # Convert start tokens to tensor (B, T)
+    if isinstance(start_tokens, list):
+        tokens_list = [list(seq) for seq in start_tokens]
+        tokens_tensor = torch.tensor(start_tokens, device=device, dtype=torch.long)
+    else:
+        tokens_tensor = start_tokens.to(device)
+        tokens_list = tokens_tensor.tolist()
+
+    batch_size = tokens_tensor.size(0)
+
+    # Labels must be (B,)
+    assert class_label is not None, "class_label must be provided as a tensor"
+    class_label_tensor = class_label.to(device).long()
+
+    # Track which sequences are finished
+    finished = torch.zeros(batch_size, dtype=torch.bool, device=device)
+    max_len = model.max_len
+
+    for _ in range(max_len - tokens_tensor.size(1)):
+        with torch.no_grad():
+            logits = model(tokens_tensor, class_label_tensor)  # (B, T, V)
+            next_logits = logits[:, -1, :] / temperature  # (B, V)
+
+            # Apply top-k and top-p
+            next_logits = top_k_filtering(next_logits, top_k)
+            next_logits = top_p_filtering(next_logits, top_p)
+            probs = F.softmax(next_logits, dim=-1)
+
+            if greedy:
+                next_tokens = torch.argmax(probs, dim=-1)  # (B,)
+            else:
+                next_tokens = torch.multinomial(probs, 1).squeeze(1)  # (B,)
+
+        # Update Python list of tokens
+        for i in range(batch_size):
+            if not finished[i]:
+                tok = next_tokens[i].item()
+                tokens_list[i].append(tok)
+                if tok == eos_id:
+                    finished[i] = True
+
+        # Stop early if all finished
+        if torch.all(finished):
+            break
+
+        # Append to tokens_tensor
+        next_tokens_tensor = next_tokens.unsqueeze(1)  # (B, 1)
+        tokens_tensor = torch.cat([tokens_tensor, next_tokens_tensor], dim=1)
+
+    return tokens_list
