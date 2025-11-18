@@ -83,5 +83,5 @@
 #svg-output path {
   stroke-dasharray: 1000;
   stroke-dashoffset: 1000;
-  animation: draw 4s linear forwards;
+  animation: draw 5s linear forwards;
 }

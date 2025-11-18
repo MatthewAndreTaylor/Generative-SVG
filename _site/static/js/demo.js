@@ -2,7 +2,6 @@ let lines = [];
 let currentLine = [];
 let isDrawing = false;
 let tolerance = 2.0;
-let bins = 16;
 const width = 384;
 const height = 384;
 
@@ -47,7 +46,6 @@ function setup() {
   stroke(0);
   strokeWeight(2);
   noFill();
-  tokenizer = new DeltaPenPositionTokenizer(bins, width, height);
   // Hook up mode radios
   const genRadio = document.getElementById("mode-generation");
   const compRadio = document.getElementById("mode-completion");

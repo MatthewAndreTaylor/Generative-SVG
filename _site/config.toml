@@ -9,11 +9,13 @@ url  = "https://github.com/tassonse"
 
 [[params.models]]
 tag = "small"
+bins = 16
 checkpoint = "model_checkpoint_small.pt"
 labels = ["bird", "crab", "guitar"]
 
 [[params.models]]
 tag = "medium"
+bins = 32
 checkpoint = "model_checkpoint_medium.pt"
 labels = ["cake", "butterfly", "flower", "mug", "sea turtle"]
 

@@ -199,15 +199,9 @@
 
   function updateClasses() {
     const tag = modelSel.value;
-    if (tag === "medium") {
-      bins = 32;
-    } else {
-      bins = 16;
-    }
-    console.log("Bins set to:", bins);
-    tokenizer = new DeltaPenPositionTokenizer(bins, width, height);
-
     const model = window.MODELS.find(m => m.tag === tag);
+
+    tokenizer = new DeltaPenPositionTokenizer(model.bins, width, height);
     const labels = model ? model.labels : [];
     classSel.innerHTML = "";
     labels.forEach((name, idx) => {
@@ -258,10 +252,6 @@
     const close = () => modal.classList.remove("is-active");
     modal.querySelector(".modal-background").addEventListener("click", close);
     modal.querySelector(".modal-close").addEventListener("click", close);
-    document.addEventListener("keydown", (e) => {
-      if (e.key === "Escape") close();
-    });
-
     document.querySelectorAll(".gallery-card").forEach((card) => {
       card.addEventListener("click", () => open(card.dataset.imgSrc));
     });
