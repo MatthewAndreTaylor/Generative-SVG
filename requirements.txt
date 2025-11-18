@@ -6,3 +6,4 @@ numpy
 scipy
 pyvips[binary]
 torchmetrics[image]
+tensorboard

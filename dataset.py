@@ -15,7 +15,7 @@ from prepare_data import quickdraw_to_svg, remove_rect
 class BaseSketchDataset(Dataset):
     """Common base for sketch datasets with caching and label management."""
 
-    def __init__(self, label_names, out_dir, download: bool = False):
+    def __init__(self, label_names, out_dir, download: bool = True):
         self.label_names = label_names
         self.out_dir = out_dir
         self.cache_path = os.path.join(out_dir, "cache.pt")
@@ -46,8 +46,6 @@ class BaseSketchDataset(Dataset):
     def parse_file(self, label, file):
         """Read a single sample and return svg string."""
         raise NotImplementedError
-
-    # ----------------------------
 
     def _load_data(self):
         data, labels = [], []

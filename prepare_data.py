@@ -436,6 +436,7 @@ def rdp(points, epsilon):
 
 
 def stroke_to_rdp(svg_content, epsilon=0.5):
+    """Utility to simplify paths using the Ramer-Douglas-Peucker algorithm."""
     paths, _ = svgstr2paths(svg_content)
     view_box = parse_viewbox(svg_content)
     fitted_paths = []
@@ -463,10 +464,8 @@ def stroke_to_rdp(svg_content, epsilon=0.5):
     return dwg.tostring()
 
 
-# Utilities for converting QuickDraw sketches to SVG
-
-
 def quickdraw_to_svg(drawing, stroke_width=1.0, size=256):
+    """Utility to convert QuickDraw stroke data to SVG format."""
     svg_parts = [f'<svg viewBox="0 0 {size} {size}"><g stroke-width="{stroke_width}">']
     for stroke in drawing:
         xs, ys = stroke[0], stroke[1]

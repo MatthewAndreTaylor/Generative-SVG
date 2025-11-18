@@ -41,6 +41,9 @@ https://creativecommons.org/licenses/by/4.0/
 - **Location:** [https://drive.google.com/file/d/1Qr8HhjRuGqgDONHigGszyHG_awCstivo/view](https://drive.google.com/file/d/1Qr8HhjRuGqgDONHigGszyHG_awCstivo/view)
 - **License:** The MIT License (MIT) Copyright (c) 2016 janesjanes
 
+
+We are primarily using a stratified version of the Quick, Draw! Dataset. 
+
 ## Accuracy Measurement
 
 We are looking at a variety of different methods of determining the accuracy of our system including:
@@ -56,9 +59,37 @@ We are looking at a variety of different methods of determining the accuracy of 
   - Pros: Looks at text-image similarity, useful for conditional generation, correlates with human judgment.
   - Cons: May have difficulties with sketch images as it was trained on internet images, prompt sensitivity.
 
-- GIQA (Generative Image Quality Assessment)
-  - Pros: Useful for filtering and ranking generations.
-  - Cons: Focuses on single-image fidelity rather than the full data distribution.
+- IS (Inception Score)
+  - Pros: Does not rely on real dataset statistics facilitating quick model comparisons.
+  - Cons: Does not check how closely generated images match the actual data distribution, so even if the model generates unrealistic sketches, it may still receive a high IS.
+
+
+## Motivation for Problem and Dataset Selection
+
+By focusing on SVG generation, we aim to overcome the limitations of raster-based approaches, such as poor scalability and unwanted background artifacts. We hope to provide a solution that is well-suited for applications in web design, game development, and digital art. Generating images with the traditional pixel image representations is very computationally expensive. A generative image model will output an $n \times n$ image that uses multiple bytes per pixel. This motivates our usage of a scalable vector image representation. We believe this representation will scale well with recent machine learning architectures. Our implementation will use **our own design** of a class conditioned transformer model for generating sketches. We also see improvements we could make to how previous strategies represent the sketch data. Such as quantizing coordinates ahead of time (See diagram below).
+
+<img src="https://github.com/user-attachments/assets/a0ff91dc-6e19-4c23-bbf2-9fa8a2a9bfd4" alt="Diagram illustration" width="400"/>
+
+<small><span>The diagram made above shows how we think using a quantized representation may be a good approach to the problem</span></small>
+
+This problem presents interesting technical challenges, which include:
+
+- Representing a sketch in a way that it can be understood by machine learning models.
+- Ensuring the quality of the training data.
+- Addressing uncertainty of style and fidelity in human sketches. 
+- Creating models that generalize to drawing techniques and object types.
+- Dealing with class imbalances and sparsity in the chosen datasets.
+- Evaluating the semantic accuracy of generated SVG sketches, not just their visual similarity.
+
+The reason that we chose the datasets above is because they are diverse, relevant, and accessible. Each dataset contains a large number of hand-drawn sketches in vector formats. They cover a wide range of object categories and drawing styles. Last, these datasets are well documented, used in other academic research, and available under permissive licenses.
+
+
+## Dataset Access
+
+- Matthew Taylor has created a module `dataset.py` for downloading, organizing, preprocessing and using the datasets with `pytorch`. An example of how to use the datasets is in the notebook [dataset_visualization.ipynb](https://github.com/MatthewAndreTaylor/Generative-SVG/blob/main/dataset_visualization.ipynb)
+
+- Sebastian Tasson validated that the datasets are accessible in the example notebook.
+
 
 ## Paper References
 
@@ -162,16 +193,6 @@ pages = {44:1--44:10}
       url={https://arxiv.org/abs/2104.08718}, 
 }
 
-@misc{gu2020giqageneratedimagequality,
-      title={GIQA: Generated Image Quality Assessment}, 
-      author={Shuyang Gu and Jianmin Bao and Dong Chen and Fang Wen},
-      year={2020},
-      eprint={2003.08932},
-      archivePrefix={arXiv},
-      primaryClass={eess.IV},
-      url={https://arxiv.org/abs/2003.08932}, 
-}
-
 @misc{borji2021prosconsganevaluation,
       title={Pros and Cons of GAN Evaluation Measures: New Developments}, 
       author={Ali Borji},
@@ -182,33 +203,6 @@ pages = {44:1--44:10}
       url={https://arxiv.org/abs/2103.09396}, 
 }
 ```
-
-
-## Motivation for Problem and Dataset Selection
-
-By focusing on SVG generation, we aim to overcome the limitations of raster-based approaches, such as poor scalability and unwanted background artifacts. We hope to provide a solution that is well-suited for applications in web design, game development, and digital art. Generating images with the traditional pixel image representations is very computationally expensive. A generative image model will output an $n \times n$ image that uses multiple bytes per pixel. This motivates our usage of a scalable vector image representation. We believe this representation will scale well with recent machine learning architectures. We also see improvements we could make to how previous strategies represent the sketch data. Such as quantizing coordinates ahead of time (See diagram below).
-
-<img src="https://github.com/user-attachments/assets/a0ff91dc-6e19-4c23-bbf2-9fa8a2a9bfd4" alt="Diagram illustration" width="400"/>
-
-<small><span>The diagram made above shows how we think using a quantized representation may be a good approach to the problem</span></small>
-
-This problem presents interesting technical challenges, which include:
-
-- Representing a sketch in a way that it can be understood by machine learning models.
-- Ensuring the quality of the training data.
-- Addressing uncertainty of style and fidelity in human sketches. 
-- Creating models that generalize to drawing techniques and object types.
-- Dealing with class imbalances and sparsity in the chosen datasets.
-- Evaluating the semantic accuracy of generated SVG sketches, not just their visual similarity.
-
-The reason that we chose the datasets above is because they are diverse, relevant, and accessible. Each dataset contains a large number of hand-drawn sketches in vector formats. They cover a wide range of object categories and drawing styles. Last, these datasets are well documented, used in other academic research, and available under permissive licenses.
-
-
-## Dataset Access
-
-- Matthew Taylor has created a module `dataset.py` for downloading, organizing, preprocessing and using the datasets with `pytorch`. An example of how to use the datasets is in the notebook [dataset_visualization.ipynb](https://github.com/MatthewAndreTaylor/Generative-SVG/blob/main/dataset_visualization.ipynb)
-
-- Sebastian Tasson validated that the datasets are accessible in the example notebook.
 
 
 ## Report Details

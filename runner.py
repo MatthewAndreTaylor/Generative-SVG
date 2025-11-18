@@ -91,10 +91,6 @@ class SketchTrainer:
         self.writer = SummaryWriter(log_dir=self.log_dir_entry)
         add_hparams(self.writer, self.hparams, {})
 
-        input_ids, _, class_labels = next(iter(self.train_loader))
-        example_input = (input_ids.to(device), class_labels.to(device))
-        self.writer.add_graph(model, example_input)
-
         # Initial evaluation to log target token distribution (validation set)
         all_targets = []
         for _, target_ids, _ in tqdm(self.val_loader, desc="Initial Eval"):
@@ -103,6 +99,11 @@ class SketchTrainer:
 
         all_targets = torch.cat(all_targets)
         self.writer.add_histogram("Targets/ValTokens", all_targets, 0)
+
+    def log_graph(self):
+        input_ids, _, class_labels = next(iter(self.train_loader))
+        example_input = (input_ids.to(device), class_labels.to(device))
+        self.writer.add_graph(self.model, example_input)
 
     def load_from_checkpoint(self, checkpoint_path):
         if not checkpoint_path or not os.path.exists(checkpoint_path):
@@ -246,7 +247,7 @@ class SketchTrainer:
                 target_ids = target_ids.to(device)
                 class_labels = class_labels.to(device)
 
-                with torch.amp.autocast(device_type="cuda", dtype=torch.float16):
+                with torch.amp.autocast(device.type, dtype=torch.float16):
                     logits = forward_pass(input_ids, class_labels)
                     loss = criterion(
                         logits.view(-1, model.vocab_size), target_ids.view(-1)
@@ -308,9 +309,11 @@ class SketchTrainer:
 
         self.save(num_epochs)
 
-    def save(self, epoch):
+    def save(self, checkpoint_label):
         """Save the trained model to disk."""
-        torch.save(self.model, os.path.join(self.log_dir_entry, f"model_{epoch}.pt"))
+        torch.save(
+            self.model, os.path.join(self.log_dir_entry, f"model_{checkpoint_label}.pt")
+        )
 
         with open(os.path.join(self.log_dir_entry, "hparams.json"), "w") as f:
             json.dump(self.hparams, f, indent=4)

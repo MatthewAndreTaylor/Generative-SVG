@@ -1,11 +1,10 @@
 import os
-import time
 import tomllib
 from argparse import ArgumentParser
 from dataset import QuickDrawDataset, SketchDataset
 from sketch_tokenizers import AbsolutePenPositionTokenizer, DeltaPenPositionTokenizer
 from models import SketchTransformer, SketchTransformerConditional
-from runner import SketchTrainer, sample
+from runner import SketchTrainer
 
 CLASS_MAP = {
     "QuickDrawDataset": QuickDrawDataset,
@@ -36,6 +35,7 @@ def load_config(path: str) -> SketchTrainer:
 
     tokenizer = tokenizer_class(**tokenizer_params)
     model_params["vocab_size"] = len(tokenizer.vocab)
+    model_params["num_classes"] = len(dataset_params["label_names"])
     model = model_class(**model_params)
 
     return SketchTrainer(
@@ -47,24 +47,10 @@ def load_config(path: str) -> SketchTrainer:
 
 
 def main(config_path: str):
+    """Main entry point for training models."""
     trainer = load_config(config_path)
 
     trainer.train_mixed(num_epochs=trainer.training_config.get("num_epochs", 10))
-
-    generated = sample(
-        model=trainer.model,
-        start_tokens=[trainer.tokenizer.vocab["START"]],
-        temperature=1.0,
-        greedy=False,
-        eos_id=trainer.tokenizer.vocab["END"],
-    )
-
-    decoded_sketch = trainer.tokenizer.decode(generated, stroke_width=0.3)
-    output_path = os.path.join(
-        trainer.log_dir, f"generated_sketch_{int(time.time())}.svg"
-    )
-    with open(output_path, "w") as f:
-        f.write(decoded_sketch)
 
 
 if __name__ == "__main__":

@@ -8,7 +8,9 @@ def generate_square_subsequent_mask(sz: int):
 
 
 class SketchTransformer(nn.Module):
-    def __init__(self, vocab_size, d_model=256, nhead=8, num_layers=6, max_len=200):
+    def __init__(
+        self, vocab_size, d_model=256, nhead=8, num_layers=6, max_len=200, **kwargs
+    ):
         super().__init__()
         self.vocab_size = vocab_size
         self.d_model = d_model
@@ -48,7 +50,14 @@ class SketchTransformer(nn.Module):
 
 class SketchTransformerConditional(nn.Module):
     def __init__(
-        self, vocab_size, num_classes, d_model=512, nhead=8, num_layers=6, max_len=200
+        self,
+        vocab_size,
+        num_classes,
+        d_model=512,
+        nhead=8,
+        num_layers=6,
+        max_len=200,
+        **kwargs
     ):
         super().__init__()
         self.vocab_size = vocab_size
