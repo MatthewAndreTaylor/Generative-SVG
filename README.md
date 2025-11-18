@@ -47,7 +47,7 @@ Here is an example of setting up training using either `Jupyter Notebook` or `Py
 
 Create a new notebook in the project directory or get started from an existing one in the [experiments](https://github.com/MatthewAndreTaylor/Generative-SVG/tree/main/experiments) directory. Our existing training experiment notebooks are named `sketch_experiments_*.ipynb`
 
-Below is an example training configuration from [example.ipynb]()
+Below is an example training configuration from [example.ipynb](https://github.com/MatthewAndreTaylor/Generative-SVG/blob/main/example.ipynb)
 
 
 ```py
