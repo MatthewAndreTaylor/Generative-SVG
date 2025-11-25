@@ -188,6 +188,26 @@ def remove_rect(svg_content):
     return svg_content
 
 
+def add_svg_properties(svg_content: str, **kwargs) -> str:
+    svg_header_match = re.search(r"<svg[^>]*>", svg_content)
+    if not svg_header_match:
+        raise ValueError("Invalid SVG content: missing <svg> tag.")
+
+    svg_header = svg_header_match.group(0)
+    for key, value in kwargs.items():
+        if re.search(rf'\s{key}="[^"]*"', svg_header):
+            svg_header = re.sub(rf'\s{key}="[^"]*"', f' {key}="{value}"', svg_header)
+        else:
+            svg_header = re.sub(
+                r"(<svg[^>]*)",
+                rf'\1 {key}="{value}"',
+                svg_header,
+                count=1,
+            )
+    svg_content = svg_content.replace(svg_header_match.group(0), svg_header)
+    return svg_content
+
+
 def count_curves(svg_content):
     paths, _ = svgstr2paths(svg_content)
     # count each segment in each path
