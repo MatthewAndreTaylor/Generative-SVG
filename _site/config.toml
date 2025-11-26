@@ -20,7 +20,7 @@ checkpoint = "model_checkpoint_medium.pt"
 labels = ["cake", "butterfly", "flower", "mug", "sea turtle"]
 
 [params]
-title = 'Conditional Sketch Generation & Completion'
+title = 'Conditional Sketch Generation and Completion'
 pdf_url  = "static/paper.pdf"
 code_url = "https://github.com/MatthewAndreTaylor/Generative-SVG"
 

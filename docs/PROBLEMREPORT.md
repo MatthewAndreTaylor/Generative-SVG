@@ -1,4 +1,4 @@
-# Conditional Sketch Generation & Completion
+# Conditional Sketch Generation and Completion
 
 <img src="https://img.shields.io/badge/GitHub-181717?style=flat&logo=github&logoColor=white" width="65" height="20" alt="GitHub" style="vertical-align:middle;"/> 
 Source code repository: 

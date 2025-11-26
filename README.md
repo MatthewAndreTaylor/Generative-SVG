@@ -1,4 +1,4 @@
-# Conditional Sketch Generation & Completion
+# Conditional Sketch Generation and Completion
 
 [![Github](https://img.shields.io/badge/GitHub-181717?style=flat&logo=github&logoColor=white)](https://github.com/MatthewAndreTaylor/Generative-SVG)
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/MatthewAndreTaylor/Generative-SVG/HEAD)
@@ -6,7 +6,7 @@
 
 
 
-This is the codebase for [Conditional Sketch Generation & Completion](paper_href)
+This is the codebase for [Conditional Sketch Generation and Completion](paper_href)
 
 This README walks through how to train and sample from the sketch generation and completion model.
 
