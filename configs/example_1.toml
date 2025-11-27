@@ -19,6 +19,6 @@ batch_size = 128
 num_epochs = 15
 learning_rate = 1e-4
 log_dir = "logs/sketch_transformer_example1"
-splits = [0.85, 0.1, 0.05]
+splits = [0.85, 0.075, 0.075]
 
 # checkpoint_path= "logs/sketch_transformer_example1/20251110_140348/model_15.pt"

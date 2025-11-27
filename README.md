@@ -74,7 +74,7 @@ training_config = {
     "num_epochs": 15,
     "learning_rate": 1e-4,
     "log_dir": "logs/sketch_transformer_experiment_2",
-    "splits": [0.85, 0.1, 0.05], 
+    "splits": [0.85, 0.075, 0.075],
     # "checkpoint_path": "logs/path/to/existing/checkpoint/model_checkpoint.pt"
 }
 

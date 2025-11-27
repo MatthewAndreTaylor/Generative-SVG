@@ -21,4 +21,4 @@ num_epochs = 20
 learning_rate = 1e-4
 log_dir = "logs/sketch_transformer_example3"
 use_padding_mask = true
-splits = [0.85, 0.1, 0.05]
+splits = [0.85, 0.075, 0.075]
