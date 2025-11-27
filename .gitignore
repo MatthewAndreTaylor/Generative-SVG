@@ -16,6 +16,8 @@ public
 .hugo_build.lock
 *.db
 
+test_examples/
+
 sketches_svg.zip
 sketchy.7z
 
