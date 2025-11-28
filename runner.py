@@ -91,15 +91,6 @@ class SketchTrainer:
         self.writer = SummaryWriter(log_dir=self.log_dir_entry)
         add_hparams(self.writer, self.hparams, {})
 
-        # Initial evaluation to log target token distribution (validation set)
-        all_targets = []
-        for _, target_ids, _ in tqdm(self.val_loader, desc="Initial Eval"):
-            mask = target_ids != self.tokenizer.pad_token_id
-            all_targets.append(target_ids[mask].detach().cpu())
-
-        all_targets = torch.cat(all_targets)
-        self.writer.add_histogram("Targets/ValTokens", all_targets, 0)
-
     def log_graph(self):
         input_ids, _, class_labels = next(iter(self.train_loader))
         example_input = (input_ids.to(device), class_labels.to(device))
@@ -124,6 +115,16 @@ class SketchTrainer:
 
     def train(self, num_epochs: int):
         """Training loop with validation and TensorBoard logging."""
+
+        # Initial evaluation to log target token distribution (validation set)
+        all_targets = []
+        for _, target_ids, _ in tqdm(self.val_loader, desc="Initial Eval"):
+            mask = target_ids != self.tokenizer.pad_token_id
+            all_targets.append(target_ids[mask].detach().cpu())
+
+        all_targets = torch.cat(all_targets)
+        self.writer.add_histogram("Targets/ValTokens", all_targets, 0)
+
         model = self.model
         train_loader = self.train_loader
         val_loader = self.val_loader
