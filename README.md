@@ -30,7 +30,7 @@ https://pytorch.org/get-started/locally/
 
 The module `dataset.py` for downloading, organizing, preprocessing and using the datasets. An example of how to use the datasets is in the notebook [dataset_visualization.ipynb](https://github.com/MatthewAndreTaylor/Generative-SVG/blob/main/dataset_visualization.ipynb)
 
-We primarily use a stratified version of the [Quick, Draw! Dataset](https://quickdraw.withgoogle.com/data) and train with a 85% train, 10% validation, 5% test split.
+We primarily use a stratified version of the [Quick, Draw! Dataset](https://quickdraw.withgoogle.com/data) and train with a 85% train, 7.5% validation, 7.5% test split.
 
 ## Training
 
@@ -119,7 +119,7 @@ num_epochs = 15
 learning_rate = 1e-4
 log_dir = "logs/sketch_transformer_example"
 use_padding_mask = false
-splits = [0.85, 0.1, 0.05] # 85% train, 10% validation, 5% test
+splits = [0.85, 0.075, 0.075] # 85% train, 7.5% validation, 7.5% test
 
 # Resume from a specific model checkpoint
 # checkpoint_path = "logs/path/to/existing/checkpoint/model_checkpoint.pt"
@@ -141,3 +141,4 @@ We have created a demo webapp to test out the system and put on display some exa
 
 
 Take a look at https://matttaylordev.pythonanywhere.com
+
