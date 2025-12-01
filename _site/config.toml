@@ -21,7 +21,7 @@ labels = ["cake", "butterfly", "flower", "mug", "sea turtle"]
 
 [params]
 title = 'Conditional Sketch Generation and Completion'
-pdf_url  = "static/paper.pdf"
+pdf_url  = "https://drive.google.com/file/d/1VWCn42NeeCjDEGNUgRaj-mTRZenl73Ll/view?usp=drive_link"
 code_url = "https://github.com/MatthewAndreTaylor/Generative-SVG"
 
 abstract = """

@@ -6,7 +6,7 @@
 
 
 
-This is the codebase for [Conditional Sketch Generation and Completion](paper_href)
+This is the codebase for [Conditional Sketch Generation and Completion](https://drive.google.com/file/d/1VWCn42NeeCjDEGNUgRaj-mTRZenl73Ll/view?usp=drive_link)
 
 This README walks through how to train and sample from the sketch generation and completion model.
 
