@@ -142,3 +142,11 @@ We have created a demo webapp to test out the system and put on display some exa
 
 Take a look at https://matttaylordev.pythonanywhere.com
 
+
+## Examples
+
+<img width="3887" height="2392" alt="grid" src="https://github.com/user-attachments/assets/962930ab-df93-4e49-ae9d-e0620a2b6d78" />
+
+
+
+
