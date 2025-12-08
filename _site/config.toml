@@ -25,12 +25,12 @@ pdf_url  = "https://drive.google.com/file/d/1VWCn42NeeCjDEGNUgRaj-mTRZenl73Ll/vi
 code_url = "https://github.com/MatthewAndreTaylor/Generative-SVG"
 
 abstract = """
-Existing sketch generation models rely on hand-crafted stroke representations that are not very generalizable across datasets or drawing styles, and train multiple models to generate sketches over different object classes.
-These issues make it challenging to embed deeper semantic knowledge of sketches or scale to a variety of classes.
-Furthermore, the temporal and structural information present in human-drawn sketches is frequently lost by conventional raster-based methods.
-We present a new system for conditional sketch generation and completion that uses a novel quantization and tokenization technique before encoding sketches into discrete token sequences.
-To improve data quality, we simplify input paths and to keep the quality of outputs we fit the strokes to bezier curves.
-We train a lightweight transformer model with an added class embedding layer to learn from multiple sketch object classes at once. This allows a single model to generalize across classes and reuse learned shape priors.
+Existing sketch generation models are not very generalizable across datasets, drawing styles, and require training multiple models to generate sketches over different object classes.
+Furthermore, the temporal and structural information present in hand-drawn sketches is frequently lost by conventional raster-based methods.
+We present a new system for conditional sketch generation and completion that takes a novel approach to tokenizing sketch sequences.
+To improve data quality, we simplify input paths and maintain output quality by fitting strokes to Bezier curves.
+We train a lightweight transformer model with an added class embedding layer to learn from multiple sketch object classes at once.
+This allows a single model to generalize across classes and reuse learned shape priors.
 """
 
 representation = """
