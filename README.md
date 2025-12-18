@@ -145,8 +145,6 @@ Take a look at https://matttaylordev.pythonanywhere.com
 
 ## Examples
 
+![animated_grid](https://github.com/user-attachments/assets/bdcbf667-eb5f-490e-ac33-fe05c03a64b6)
+
 <img width="3887" height="2392" alt="grid" src="https://github.com/user-attachments/assets/962930ab-df93-4e49-ae9d-e0620a2b6d78" />
-
-
-
-
