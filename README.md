@@ -11,6 +11,18 @@ This is the codebase for [Conditional Sketch Generation and Completion](https://
 This README walks through how to train and sample from the sketch generation and completion model.
 
 
+![animated_grid](https://github.com/user-attachments/assets/bdcbf667-eb5f-490e-ac33-fe05c03a64b6)
+
+<!-- <img width="3887" height="2392" alt="grid" src="https://github.com/user-attachments/assets/962930ab-df93-4e49-ae9d-e0620a2b6d78" /> -->
+
+We have created a demo webapp to test out the system and put on display some examples.
+
+
+Take a look at https://matttaylordev.pythonanywhere.com
+
+---
+
+
 ## Installation
 
 You must install Python >= 3.11
@@ -135,16 +147,4 @@ Then run `python main.py --config path/to/config.toml`
 Training logs and checkpoints are saved to the `log_dir`. You can follow the notebook [experiments/sample_outputs.ipynb](https://github.com/MatthewAndreTaylor/Generative-SVG/blob/main/experiments/sample_outputs.ipynb) to load and sample from a saved model. To visualize the metrics collected while training run `tensorboard --logdir log_dir` and navigate to http://localhost:6006/
 
 
-## Demo
 
-We have created a demo webapp to test out the system and put on display some examples.
-
-
-Take a look at https://matttaylordev.pythonanywhere.com
-
-
-## Examples
-
-![animated_grid](https://github.com/user-attachments/assets/bdcbf667-eb5f-490e-ac33-fe05c03a64b6)
-
-<img width="3887" height="2392" alt="grid" src="https://github.com/user-attachments/assets/962930ab-df93-4e49-ae9d-e0620a2b6d78" />
