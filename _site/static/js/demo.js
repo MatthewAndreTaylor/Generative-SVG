@@ -5,6 +5,9 @@ let tolerance = 2.0;
 const width = 384;
 const height = 384;
 
+
+// UI state
+//  showKeyPoints = true; to enable keypoint visualization
 let showKeyPoints = false;
 let lastTime = new Date();
 let tokenizer;
