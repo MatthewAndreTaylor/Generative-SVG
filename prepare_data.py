@@ -268,6 +268,7 @@ def fitCurve(points, maxError):
 
 def fitCubic(points, leftTangent, rightTangent, error):
     # Modified from
+    # https://github.com/erich666/GraphicsGems
     # https://github.com/volkerp/fitCurves/blob/master/fitCurves.py
     if len(points) == 2:
         dist = abs(points[0] - points[1]) / 3.0
