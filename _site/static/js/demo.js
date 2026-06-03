@@ -16,11 +16,6 @@ let modelSessions = new Map();
 let modelLoadPromises = new Map();
 let ortReadyPromise = null;
 
-function getModelAssetUrl(tag) {
-  const base = window.MODEL_ASSET_BASE || "/static/models/";
-  return `${base}${tag}.onnx`;
-}
-
 function ensureOrtReady() {
   if (!ortReadyPromise) {
     ortReadyPromise = (async () => {
@@ -50,7 +45,7 @@ async function getModelSession(tag) {
       tag,
       (async () => {
         await ensureOrtReady();
-        const session = await ort.InferenceSession.create(getModelAssetUrl(tag), {
+        const session = await ort.InferenceSession.create(`static/models/${tag}.onnx`, {
           executionProviders: ["webgpu", "wasm"],
           graphOptimizationLevel: "all",
         });

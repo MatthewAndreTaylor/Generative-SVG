@@ -85,7 +85,7 @@
         <div id="examples">
           <div class="tabs is-centered is-toggle is-toggle-rounded is-small">
             <ul id="example-tabs">
-              {% for group in examples %}
+              {%- for group in examples %}
               <li
                 class="{% if loop.first %}is-active{% endif %}"
                 data-target="gallery-{{ group.id }}"
@@ -95,7 +95,7 @@
                   <span class="tag is-light ml-2">{{ group.images|length }}</span>
                 </a>
               </li>
-              {% endfor %}
+              {%- endfor %}
             </ul>
           </div>
 
@@ -111,11 +111,11 @@
               >
                 <div
                   class="gallery-card box p-2"
-                  data-img-src="{{ url_for('static', filename=img) }}"
+                  data-img-src="static/{{ img }}"
                 >
                   <figure class="image is-square">
                     <img
-                      src="{{ url_for('static', filename=img) }}"
+                      src="static/{{ img }}"
                       alt="Example {{ loop.index }} in {{ group.id }}"
                     />
                   </figure>
@@ -187,11 +187,11 @@
   </div>
 </footer>
 
-<script src="{{ url_for('static', filename='js/demo.js') }}"></script>
+<script src="static/js/demo.js"></script>
 
 <script>
   window.MODELS = {{ models | tojson }};
-  window.MODEL_ASSET_BASE = "{{ url_for('static', filename='models') }}/";
+  window.MODEL_ASSET_BASE = "static/models";
   const modelSel = document.getElementById("model-select");
   const classSel = document.getElementById("example-class");
 

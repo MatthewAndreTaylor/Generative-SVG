@@ -26,5 +26,6 @@ sketchy.7z
 *.pkl
 
 logs*
+dist
 
 *.onnx
