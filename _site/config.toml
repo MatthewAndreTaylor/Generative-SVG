@@ -12,12 +12,14 @@ tag = "small"
 bins = 16
 checkpoint = "model_checkpoint_small.pt"
 labels = ["bird", "crab", "guitar"]
+url = "https://huggingface.co/buckets/MatthewAndre/sketch_models/resolve/small.onnx"
 
 [[params.models]]
 tag = "medium"
 bins = 32
 checkpoint = "model_checkpoint_medium.pt"
 labels = ["cake", "butterfly", "flower", "mug", "sea turtle"]
+url = "https://huggingface.co/buckets/MatthewAndre/sketch_models/resolve/medium.onnx"
 
 [params]
 title = 'Conditional Sketch Generation and Completion'

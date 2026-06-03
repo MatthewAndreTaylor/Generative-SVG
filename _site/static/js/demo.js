@@ -45,7 +45,8 @@ async function getModelSession(tag) {
       tag,
       (async () => {
         await ensureOrtReady();
-        const session = await ort.InferenceSession.create(`static/models/${tag}.onnx`, {
+        const model = window.MODELS.find(m => m.tag === tag);
+        const session = await ort.InferenceSession.create(model.url, {
           executionProviders: ["webgpu", "wasm"],
           graphOptimizationLevel: "all",
         });
