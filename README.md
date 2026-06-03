@@ -2,6 +2,7 @@
 
 [![Github](https://img.shields.io/badge/GitHub-181717?style=flat&logo=github&logoColor=white)](https://github.com/MatthewAndreTaylor/Generative-SVG)
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/MatthewAndreTaylor/Generative-SVG/HEAD)
+[![Website](https://img.shields.io/badge/Demo-matthewandretaylor.github.io-informational?style=flat-square&color=8B89CC&logo=Google-Chrome&logoColor=white)](https://matthewandretaylor.github.io/Generative-SVG/)
 [![Website](https://img.shields.io/badge/Flask-matttaylordev.pythonanywhere.com-informational?style=flat-square&color=E23237&logo=flask&logoColor=white)](https://matttaylordev.pythonanywhere.com)
 
 
