@@ -1,6 +1,8 @@
 tqdm
 svgpathtools
 torch
+onnx
+onnxscript
 matplotlib
 numpy
 scipy

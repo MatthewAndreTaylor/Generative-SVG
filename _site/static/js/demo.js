@@ -12,6 +12,115 @@ let showKeyPoints = false;
 let lastTime = new Date();
 let tokenizer;
 var currentMode = "generation";
+let modelSessions = new Map();
+let modelLoadPromises = new Map();
+let ortReadyPromise = null;
+
+function getModelAssetUrl(tag) {
+  const base = window.MODEL_ASSET_BASE || "/static/models/";
+  return `${base}${tag}.onnx`;
+}
+
+function ensureOrtReady() {
+  if (!ortReadyPromise) {
+    ortReadyPromise = (async () => {
+      if (window.ort && window.ort.env && window.ort.env.wasm) {
+        window.ort.env.wasm.wasmPaths = "https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/";
+        if (self.crossOriginIsolated) {
+          window.ort.env.wasm.numThreads = Math.max(2, Math.min(4, navigator.hardwareConcurrency || 4));
+        }
+        window.ort.env.wasm.simd = true;
+      }
+      if (window.ort && window.ort.env && window.ort.env.webgpu) {
+        window.ort.env.webgpu.powerPreference = "high-performance";
+      }
+      return window.ort;
+    })();
+  }
+  return ortReadyPromise;
+}
+
+async function getModelSession(tag) {
+  if (modelSessions.has(tag)) {
+    return modelSessions.get(tag);
+  }
+
+  if (!modelLoadPromises.has(tag)) {
+    modelLoadPromises.set(
+      tag,
+      (async () => {
+        await ensureOrtReady();
+        const session = await ort.InferenceSession.create(getModelAssetUrl(tag), {
+          executionProviders: ["webgpu", "wasm"],
+          graphOptimizationLevel: "all",
+        });
+        modelSessions.set(tag, session);
+        return session;
+      })()
+    );
+  }
+
+  return modelLoadPromises.get(tag);
+}
+
+function softmax(values) {
+  const maxValue = Math.max(...values);
+  const exps = values.map((value) => Math.exp(value - maxValue));
+  const total = exps.reduce((sum, value) => sum + value, 0);
+  return exps.map((value) => value / total);
+}
+
+function sampleFromDistribution(probabilities) {
+  const threshold = Math.random();
+  let cumulative = 0;
+  for (let index = 0; index < probabilities.length; index += 1) {
+    cumulative += probabilities[index];
+    if (threshold <= cumulative) {
+      return index;
+    }
+  }
+  return probabilities.length - 1;
+}
+
+function topKFilter(logits, topK) {
+  if (!topK || topK <= 0 || topK >= logits.length) {
+    return logits.slice();
+  }
+  const sorted = logits.map((value, index) => ({ value, index })).sort((a, b) => b.value - a.value);
+  const threshold = sorted[topK - 1].value;
+  return logits.map((value) => (value < threshold ? Number.NEGATIVE_INFINITY : value));
+}
+
+function topPFilter(logits, topP) {
+  if (!topP || topP >= 1) {
+    return logits.slice();
+  }
+  const sorted = logits.map((value, index) => ({ value, index })).sort((a, b) => b.value - a.value);
+  const sortedValues = sorted.map((item) => item.value);
+  const probabilities = softmax(sortedValues);
+  let cumulative = 0;
+  let cutoffIndex = probabilities.length - 1;
+  for (let index = 0; index < probabilities.length; index += 1) {
+    cumulative += probabilities[index];
+    if (cumulative > topP) {
+      cutoffIndex = index;
+      break;
+    }
+  }
+  const allowed = new Set(sorted.slice(0, cutoffIndex + 1).map((item) => item.index));
+  return logits.map((value, index) => (allowed.has(index) ? value : Number.NEGATIVE_INFINITY));
+}
+
+function selectNextToken(logits, temperature, topK, topP) {
+  const scaled = logits.map((value) => value / Math.max(temperature, 1e-6));
+  const filtered = topPFilter(topKFilter(scaled, topK), topP);
+  const probabilities = softmax(filtered);
+  return sampleFromDistribution(probabilities);
+}
+
+function toBigInt64Array(values) {
+  return BigInt64Array.from(values.map((value) => BigInt(value)));
+}
 
 function applyModeUI() {
   const container = document.getElementById("canvas-container");
@@ -153,32 +262,45 @@ function drawKeyPoints(points) {
 
 async function modelExample(tokens) {
   const eosId = tokenizer.vocab.get("END");
+  const padId = tokenizer.vocab.get("PAD");
   const classLabel = getClassLabel();
   const start_tokens =
     currentMode === "completion" ? tokens.slice(0, -1) : [tokenizer.vocab.get("START")];
+  const modelTag = getSelectedModel();
+  const session = await getModelSession(modelTag);
+  const outputName = session.outputNames[0];
+  let generatedTokens = start_tokens.slice();
+  const maxLength = 200;
 
-  const body = {
-    start_tokens: start_tokens,
-    eos_id: eosId,
-    class_label: classLabel,
-    model: getSelectedModel()
-  };
-
-  const response = await fetch("/sample", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify(body)
-  });
-
-  if (!response.ok) {
-    console.error("Error from model:", await response.text());
-    return tokens;
+  while (generatedTokens.length < maxLength) {
+    const inputTokens = new Array(maxLength).fill(padId);
+    for (let index = 0; index < generatedTokens.length; index += 1) {
+      inputTokens[index] = generatedTokens[index];
+    }
+    const tokenTensor = new ort.Tensor(
+      "int64",
+      toBigInt64Array(inputTokens),
+      [1, maxLength]
+    );
+    const classTensor = new ort.Tensor("int64", toBigInt64Array([classLabel]), [1]);
+    const feeds = {
+      tokens: tokenTensor,
+      class_labels: classTensor,
+    };
+    const results = await session.run(feeds);
+    const logitsTensor = results[outputName];
+    const seqIndex = generatedTokens.length - 1;
+    const tokenCount = logitsTensor.dims[2];
+    const offset = seqIndex * tokenCount;
+    const nextLogits = Array.from(logitsTensor.data.slice(offset, offset + tokenCount));
+    const nextToken = selectNextToken(nextLogits, 0.8, 20, 0.7);
+    generatedTokens.push(nextToken);
+    if (nextToken === eosId) {
+      break;
+    }
   }
 
-  const data = await response.json();
-  return data.tokens;
+  return generatedTokens;
 }
 
 async function updateSVG() {
@@ -232,7 +354,7 @@ async function updateSVG() {
     container.appendChild(cell);
   } catch (err) {
     console.error("Generate failed:", err);
-    alert("Error during generation. Inference server may be unavailable.");
+    alert("Error during generation. The browser-side ONNX model may be unavailable.");
   } finally {
     if (genBtn) {
       genBtn.disabled = false;

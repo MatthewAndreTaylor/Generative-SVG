@@ -1,23 +1,9 @@
 {% extends "base.html" %} {% block body %} {% include "hero.html" %}
 
 <section class="section">
-  <div class="container">
-    <div class="content">
-      <div class="columns is-centered">
-        <div class="column is-half">
-          <h2>Abstract</h2>
-          <p>{{ abstract | safe }}</p>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<section class="section">
   <div class="content">
     <div class="columns is-centered">
       <div class="column is-two-thirds">
-        <h2>Demo</h2>
         <div id="sketch-app">
           <div id="sketch-pane">
             <h3 class="title is-5">Input</h3>
@@ -96,8 +82,6 @@
   <div class="content">
     <div class="columns is-centered">
       <div class="column is-two-thirds">
-        <h2>Examples</h2>
-
         <div id="examples">
           <div class="tabs is-centered is-toggle is-toggle-rounded is-small">
             <ul id="example-tabs">
@@ -141,6 +125,19 @@
             </div>
           </div>
           {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container">
+    <div class="content">
+      <div class="columns is-centered">
+        <div class="column is-half">
+          <h2>Abstract</h2>
+          <p>{{ abstract | safe }}</p>
         </div>
       </div>
     </div>
@@ -194,6 +191,7 @@
 
 <script>
   window.MODELS = {{ models | tojson }};
+  window.MODEL_ASSET_BASE = "{{ url_for('static', filename='models') }}/";
   const modelSel = document.getElementById("model-select");
   const classSel = document.getElementById("example-class");
 
