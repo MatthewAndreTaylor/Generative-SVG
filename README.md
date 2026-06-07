@@ -19,7 +19,7 @@ This README walks through how to train and sample from the sketch generation and
 We have created a demo webapp to test out the system and put on display some examples.
 
 
-Take a look at https://matttaylordev.pythonanywhere.com
+Take a look at https://matthewandretaylor.github.io/Generative-SVG
 
 ---
 
